@@ -75,7 +75,8 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        log.LogWarning("Erro no startup do banco: {Message}", ex.Message);
+        log.LogError("DB ERROR: {Message} | Inner: {Inner} | Type: {Type}",
+            ex.Message, ex.InnerException?.Message, ex.GetType().Name);
     }
 }
 
