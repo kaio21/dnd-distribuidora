@@ -75,7 +75,7 @@ export default function BuyerMessages() {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="bg-white border-b border-gray-200 px-8 py-5 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-8 py-4 md:py-5 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Mensagens</h1>
           <p className="text-sm text-gray-500">Fale com a D&D Distribuidora</p>

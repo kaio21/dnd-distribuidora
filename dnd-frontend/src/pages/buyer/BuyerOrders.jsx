@@ -51,7 +51,7 @@ export default function BuyerOrders() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Meus Pedidos</h1>
         <p className="text-gray-500 text-sm mt-1">{orders.length} pedido(s)</p>

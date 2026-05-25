@@ -3,7 +3,7 @@ import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import * as signalR from '@microsoft/signalr'
 import { HUB_URL } from '../../api/config'
-import { Send, MessageSquare } from 'lucide-react'
+import { Send, MessageSquare, ArrowLeft } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -85,7 +85,7 @@ export default function SellerMessages() {
 
   return (
     <div className="flex h-full" style={{ height: 'calc(100vh - 0px)' }}>
-      <aside className="w-72 border-r border-gray-200 bg-white flex flex-col">
+      <aside className={`${selected ? 'hidden md:flex' : 'flex'} w-full md:w-72 border-r border-gray-200 bg-white flex-col`}>
         <div className="p-4 border-b border-gray-200">
           <h2 className="font-bold text-gray-900">Mensagens</h2>
           <p className="text-xs text-gray-500 mt-0.5">{conversations.length} conversa(s)</p>
@@ -115,7 +115,7 @@ export default function SellerMessages() {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className={`${selected ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-gray-50`}>
         {!selected ? (
           <div className="flex-1 flex items-center justify-center text-gray-400">
             <div className="text-center">
@@ -125,10 +125,15 @@ export default function SellerMessages() {
           </div>
         ) : (
           <>
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <div>
-                <p className="font-bold text-gray-900">{selected.buyerName}</p>
-                <p className="text-xs text-gray-500">{selected.buyerStoreName}</p>
+            <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <button onClick={() => setSelected(null)} className="md:hidden text-gray-500 hover:text-gray-700 shrink-0">
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="min-w-0">
+                  <p className="font-bold text-gray-900 truncate">{selected.buyerName}</p>
+                  <p className="text-xs text-gray-500 truncate">{selected.buyerStoreName}</p>
+                </div>
               </div>
               <button onClick={openWhatsApp}
                 className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">

@@ -68,13 +68,13 @@ export default function SellerOrders() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
         <p className="text-gray-500 text-sm mt-1">{orders.length} pedido(s) encontrado(s)</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="card">
           <p className="text-sm text-gray-500">Pedidos filtrados</p>
           <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
