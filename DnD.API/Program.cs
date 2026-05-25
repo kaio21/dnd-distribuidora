@@ -68,7 +68,7 @@ using (var scope = app.Services.CreateScope())
     {
         var db  = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        db.Database.Migrate();
+        db.Database.EnsureCreated();
         await DnD.API.Data.SeedData.SeedAsync(db);
         log.LogInformation("Banco de dados pronto.");
     }
