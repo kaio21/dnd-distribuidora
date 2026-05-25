@@ -17,6 +17,7 @@ import BuyerLayout from './components/BuyerLayout'
 import Shop from './pages/buyer/Shop'
 import BuyerOrders from './pages/buyer/BuyerOrders'
 import BuyerMessages from './pages/buyer/BuyerMessages'
+import PaymentPage from './pages/buyer/PaymentPage'
 
 function ProtectedSeller({ children }) {
   const { user } = useAuth()
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/buyer" element={<ProtectedBuyer><BuyerLayout /></ProtectedBuyer>}>
           <Route index element={<Navigate to="shop" replace />} />
           <Route path="shop" element={<Shop />} />
+          <Route path="payment" element={<PaymentPage />} />
           <Route path="orders" element={<BuyerOrders />} />
           <Route path="messages" element={<BuyerMessages />} />
         </Route>

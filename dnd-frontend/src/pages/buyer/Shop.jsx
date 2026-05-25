@@ -13,6 +13,7 @@ export default function Shop() {
   const [ordering, setOrdering] = useState(false)
   const [search, setSearch] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
+  const [ordering] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -48,22 +49,9 @@ export default function Shop() {
   const cartCount = cart.reduce((a, i) => a + i.qty, 0)
   const cartTotal = cart.reduce((a, i) => a + i.salePrice * i.qty, 0)
 
-  const handleOrder = async () => {
+  const handleOrder = () => {
     if (cart.length === 0) { toast.error('Carrinho vazio'); return }
-    setOrdering(true)
-    try {
-      await api.post('/orders', {
-        items: cart.map(i => ({ productId: i.id, quantity: i.qty }))
-      })
-      toast.success('Pedido realizado com sucesso!')
-      setCart([])
-      setCartOpen(false)
-      navigate('/buyer/orders')
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erro ao fazer pedido')
-    } finally {
-      setOrdering(false)
-    }
+    navigate('/buyer/payment', { state: { cart } })
   }
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))

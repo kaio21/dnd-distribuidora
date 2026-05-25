@@ -5,21 +5,31 @@ import toast from 'react-hot-toast'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { ShoppingCart, Eye, EyeOff } from 'lucide-react'
+import { maskCPF, maskCNPJ, maskPhone, stripMask } from '../../utils/masks'
 
 export default function BuyerRegister() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm()
+  const [cpf, setCpf] = useState('')
+  const [cnpj, setCnpj] = useState('')
+  const [phone, setPhone] = useState('')
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm()
 
   const onSubmit = async (data) => {
     try {
-      const res = await api.post('/auth/buyer/register', data)
+      const payload = {
+        ...data,
+        cpf: stripMask(cpf),
+        cnpj: stripMask(cnpj),
+        phone: stripMask(phone),
+      }
+      const res = await api.post('/auth/buyer/register', payload)
       login(res.data)
       toast.success('Conta criada com sucesso!')
       navigate('/buyer/shop')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Erro ao cadastrar')
+      toast.error(err.response?.data?.message || 'Erro ao cadastrar. Verifique os dados.')
     }
   }
 
@@ -55,15 +65,13 @@ export default function BuyerRegister() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-              <input {...register('cpf', { required: 'Obrigatório' })}
-                placeholder="000.000.000-00" className="input" />
-              {errors.cpf && <p className="text-red-500 text-xs mt-1">{errors.cpf.message}</p>}
+              <input value={cpf} onChange={e => setCpf(maskCPF(e.target.value))}
+                placeholder="000.000.000-00" className="input" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
-              <input {...register('cnpj', { required: 'Obrigatório' })}
-                placeholder="00.000.000/0001-00" className="input" />
-              {errors.cnpj && <p className="text-red-500 text-xs mt-1">{errors.cnpj.message}</p>}
+              <input value={cnpj} onChange={e => setCnpj(maskCNPJ(e.target.value))}
+                placeholder="00.000.000/0001-00" className="input" required />
             </div>
           </div>
 
@@ -76,9 +84,8 @@ export default function BuyerRegister() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
-            <input {...register('phone', { required: 'Obrigatório' })}
-              placeholder="(11) 99999-9999" className="input" />
-            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
+            <input value={phone} onChange={e => setPhone(maskPhone(e.target.value))}
+              placeholder="(11) 99999-9999" className="input" required />
           </div>
 
           <div>
