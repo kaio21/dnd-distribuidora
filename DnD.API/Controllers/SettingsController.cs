@@ -4,6 +4,7 @@ using DnD.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DnD.API.Controllers;
 
@@ -24,9 +25,14 @@ public class SettingsController : ControllerBase
     }
 
     [HttpPut]
-    [Authorize(Roles = "Seller")]
+    [Authorize]
     public async Task<IActionResult> Update([FromBody] StoreSettingsDto dto)
     {
+        var role = User.FindFirstValue(ClaimTypes.Role)
+                ?? User.FindFirstValue("role");
+        if (role != "Seller")
+            return Forbid();
+
         var s = await _db.StoreSettings.FirstOrDefaultAsync();
         if (s == null) { s = new StoreSettings(); _db.StoreSettings.Add(s); }
 
