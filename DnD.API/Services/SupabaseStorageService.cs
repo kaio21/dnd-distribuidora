@@ -16,8 +16,11 @@ public class SupabaseStorageService
         _key = config["Supabase:ServiceKey"]!;
     }
 
-    public async Task<string> UploadAsync(IFormFile file)
+    public async Task<string?> UploadAsync(IFormFile file)
     {
+        if (string.IsNullOrEmpty(_url) || string.IsNullOrEmpty(_key))
+            return null;
+
         var ext = Path.GetExtension(file.FileName).ToLower();
         var fileName = $"{Guid.NewGuid()}{ext}";
 

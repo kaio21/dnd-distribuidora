@@ -30,7 +30,7 @@ public class ProductsController : ControllerBase
         var products = await query
             .OrderByDescending(p => p.CreatedAt)
             .Select(p => new ProductResponseDto(
-                p.Id, p.Name, p.Description, p.CostPrice, p.SalePrice,
+                p.Id, p.Name, p.Description, p.Category, p.CostPrice, p.SalePrice,
                 p.SalePrice - p.CostPrice, p.Stock, p.ImageUrl, p.IsActive, p.CreatedAt))
             .ToListAsync();
 
@@ -44,7 +44,7 @@ public class ProductsController : ControllerBase
         if (p == null) return NotFound();
 
         return Ok(new ProductResponseDto(
-            p.Id, p.Name, p.Description, p.CostPrice, p.SalePrice,
+            p.Id, p.Name, p.Description, p.Category, p.CostPrice, p.SalePrice,
             p.SalePrice - p.CostPrice, p.Stock, p.ImageUrl, p.IsActive, p.CreatedAt));
     }
 
@@ -56,6 +56,7 @@ public class ProductsController : ControllerBase
         {
             Name = dto.Name,
             Description = dto.Description,
+            Category = dto.Category,
             CostPrice = dto.CostPrice,
             SalePrice = dto.SalePrice,
             Stock = dto.Stock
@@ -69,7 +70,7 @@ public class ProductsController : ControllerBase
 
         return CreatedAtAction(nameof(GetById), new { id = product.Id },
             new ProductResponseDto(product.Id, product.Name, product.Description,
-                product.CostPrice, product.SalePrice, product.SalePrice - product.CostPrice,
+                product.Category, product.CostPrice, product.SalePrice, product.SalePrice - product.CostPrice,
                 product.Stock, product.ImageUrl, product.IsActive, product.CreatedAt));
     }
 
@@ -82,6 +83,7 @@ public class ProductsController : ControllerBase
 
         product.Name = dto.Name;
         product.Description = dto.Description;
+        product.Category = dto.Category;
         product.CostPrice = dto.CostPrice;
         product.SalePrice = dto.SalePrice;
         product.Stock = dto.Stock;
@@ -92,7 +94,7 @@ public class ProductsController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new ProductResponseDto(product.Id, product.Name, product.Description,
-            product.CostPrice, product.SalePrice, product.SalePrice - product.CostPrice,
+            product.Category, product.CostPrice, product.SalePrice, product.SalePrice - product.CostPrice,
             product.Stock, product.ImageUrl, product.IsActive, product.CreatedAt));
     }
 

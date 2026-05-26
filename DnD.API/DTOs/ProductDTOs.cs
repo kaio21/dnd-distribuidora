@@ -3,6 +3,7 @@ namespace DnD.API.DTOs;
 public record ProductCreateDto(
     string Name,
     string Description,
+    string Category,
     decimal CostPrice,
     decimal SalePrice,
     int Stock
@@ -11,6 +12,7 @@ public record ProductCreateDto(
 public record ProductUpdateDto(
     string Name,
     string Description,
+    string Category,
     decimal CostPrice,
     decimal SalePrice,
     int Stock,
@@ -21,6 +23,7 @@ public record ProductResponseDto(
     int Id,
     string Name,
     string Description,
+    string Category,
     decimal CostPrice,
     decimal SalePrice,
     decimal Profit,

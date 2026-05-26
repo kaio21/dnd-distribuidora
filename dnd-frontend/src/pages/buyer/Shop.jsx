@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
-import { ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle, X } from 'lucide-react'
+import { ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle, X, ChevronDown, ChevronRight, Clock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -12,16 +12,40 @@ export default function Shop() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
-  const [ordering] = useState(false)
+  const [openCategories, setOpenCategories] = useState({})
+  const [storeSettings, setStoreSettings] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    api.get('/products?activeOnly=true')
-      .then(r => setProducts(r.data))
-      .finally(() => setLoading(false))
+    Promise.all([
+      api.get('/products?activeOnly=true'),
+      api.get('/settings')
+    ]).then(([prodRes, settingsRes]) => {
+      setProducts(prodRes.data)
+      setStoreSettings(settingsRes.data)
+      // abrir todas as categorias por padrão
+      const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
+      setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
+    }).finally(() => setLoading(false))
   }, [])
 
+  // verifica se a loja está aberta
+  const isStoreOpen = () => {
+    if (!storeSettings) return true
+    if (!storeSettings.isOpen) return false
+    const now = new Date()
+    const brtOffset = -3 * 60
+    const brtNow = new Date(now.getTime() + (now.getTimezoneOffset() + brtOffset) * 60000)
+    const currentMinutes = brtNow.getHours() * 60 + brtNow.getMinutes()
+    const [oh, om] = storeSettings.openTime.split(':').map(Number)
+    const [ch, cm] = storeSettings.closeTime.split(':').map(Number)
+    return currentMinutes >= oh * 60 + om && currentMinutes < ch * 60 + cm
+  }
+
+  const storeOpen = isStoreOpen()
+
   const addToCart = (product) => {
+    if (!storeOpen) { toast.error('A loja está fechada no momento.'); return }
     if (product.stock === 0) { toast.error('Produto sem estoque!'); return }
     setCart(prev => {
       const existing = prev.find(i => i.id === product.id)
@@ -34,6 +58,7 @@ export default function Shop() {
   }
 
   const removeFromCart = (id) => setCart(prev => prev.filter(i => i.id !== id))
+
   const changeQty = (id, delta) => {
     setCart(prev => prev.map(i => {
       if (i.id !== id) return i
@@ -49,11 +74,18 @@ export default function Shop() {
   const cartTotal = cart.reduce((a, i) => a + i.salePrice * i.qty, 0)
 
   const handleOrder = () => {
+    if (!storeOpen) { toast.error('A loja está fechada. Tente durante o horário de funcionamento.'); return }
     if (cart.length === 0) { toast.error('Carrinho vazio'); return }
     navigate('/buyer/payment', { state: { cart } })
   }
 
+  const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
+
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+  const categories = [...new Set(filtered.map(p => p.category || 'Geral'))].sort()
+  const byCategory = Object.fromEntries(
+    categories.map(cat => [cat, filtered.filter(p => (p.category || 'Geral') === cat)])
+  )
 
   const CartItems = () => (
     <>
@@ -94,26 +126,46 @@ export default function Shop() {
             <span className="font-semibold text-gray-700">Total</span>
             <span className="text-xl font-black text-gray-900">{fmt(cartTotal)}</span>
           </div>
-          <button onClick={handleOrder} disabled={ordering} className="btn-primary w-full py-3 text-base">
-            {ordering ? 'Realizando pedido...' : 'Finalizar pedido'}
+          <button onClick={handleOrder} className="btn-primary w-full py-3 text-base">
+            Finalizar pedido
           </button>
         </div>
       )}
     </>
   )
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  )
 
   return (
     <div className="flex h-full overflow-hidden" style={{ height: '100vh' }}>
       {/* Produtos */}
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Loja</h1>
           <p className="text-gray-500 text-sm mt-1">{products.length} produto(s) disponível(is)</p>
         </div>
 
-        <div className="mb-6">
+        {/* Banner horário */}
+        {storeSettings && (
+          <div className={`flex items-center gap-3 rounded-xl px-4 py-3 mb-4 text-sm font-medium ${
+            storeOpen
+              ? 'bg-green-50 border border-green-200 text-green-700'
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            <Clock size={16} className="shrink-0" />
+            {storeOpen
+              ? `Loja aberta — das ${storeSettings.openTime} às ${storeSettings.closeTime}`
+              : storeSettings.isOpen
+                ? `Loja fechada — abre às ${storeSettings.openTime} (horário de Brasília)`
+                : 'Loja fechada temporariamente'}
+          </div>
+        )}
+
+        <div className="mb-5">
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar produto..." className="input max-w-md" />
         </div>
@@ -124,32 +176,59 @@ export default function Shop() {
             <p className="text-gray-500">Nenhum produto disponível no momento</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
-            {filtered.map(p => (
-              <div key={p.id} className="card group">
-                <div className="aspect-video bg-gray-100 rounded-lg mb-4 overflow-hidden">
-                  {p.imageUrl
-                    ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
-                </div>
-                <h3 className="font-bold text-gray-900 mb-1">{p.name}</h3>
-                <p className="text-gray-500 text-sm mb-3 line-clamp-2">{p.description}</p>
-
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-2xl font-black text-blue-700">{fmt(p.salePrice)}</p>
-                  {p.stock === 0 ? (
-                    <span className="flex items-center gap-1 text-red-500 text-sm font-medium">
-                      <AlertCircle size={16} /> Sem estoque
+          <div className="space-y-3">
+            {categories.map(cat => (
+              <div key={cat} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* cabeçalho da categoria */}
+                <button
+                  onClick={() => toggleCategory(cat)}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition">
+                  <div className="flex items-center gap-3">
+                    {openCategories[cat] ? <ChevronDown size={18} className="text-blue-600" /> : <ChevronRight size={18} className="text-gray-400" />}
+                    <span className="font-bold text-gray-800">{cat}</span>
+                    <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
+                      {byCategory[cat].length}
                     </span>
-                  ) : (
-                    <span className="text-gray-500 text-sm">{p.stock} disponível</span>
-                  )}
-                </div>
-
-                <button onClick={() => addToCart(p)} disabled={p.stock === 0}
-                  className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40">
-                  <ShoppingCart size={16} /> Adicionar
+                  </div>
                 </button>
+
+                {/* produtos da categoria */}
+                {openCategories[cat] && (
+                  <div className="border-t border-gray-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
+                      {byCategory[cat].map(p => (
+                        <div key={p.id} className="card group">
+                          <div className="aspect-video bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                            {p.imageUrl
+                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
+                          </div>
+                          <h3 className="font-bold text-gray-900 mb-1">{p.name}</h3>
+                          <p className="text-gray-500 text-sm mb-3 line-clamp-2">{p.description}</p>
+
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="text-2xl font-black text-blue-700">{fmt(p.salePrice)}</p>
+                            {p.stock === 0 ? (
+                              <span className="flex items-center gap-1 text-red-500 text-sm font-medium">
+                                <AlertCircle size={16} /> Sem estoque
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 text-sm">{p.stock} disponível</span>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => addToCart(p)}
+                            disabled={p.stock === 0 || !storeOpen}
+                            className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40">
+                            <ShoppingCart size={16} />
+                            {!storeOpen ? 'Loja fechada' : 'Adicionar'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -171,7 +250,7 @@ export default function Shop() {
         <CartItems />
       </aside>
 
-      {/* Botão flutuante do carrinho — mobile */}
+      {/* Botão flutuante — mobile */}
       {cartCount > 0 && (
         <button onClick={() => setCartOpen(true)}
           className="fixed bottom-20 right-4 md:hidden bg-blue-600 text-white rounded-full px-4 py-3 flex items-center gap-2 shadow-xl z-40">
@@ -181,7 +260,7 @@ export default function Shop() {
         </button>
       )}
 
-      {/* Drawer do carrinho — mobile */}
+      {/* Drawer carrinho — mobile */}
       {cartOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setCartOpen(false)} />

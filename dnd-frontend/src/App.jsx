@@ -12,6 +12,7 @@ import Dashboard from './pages/seller/Dashboard'
 import Products from './pages/seller/Products'
 import SellerOrders from './pages/seller/SellerOrders'
 import SellerMessages from './pages/seller/SellerMessages'
+import SellerSettings from './pages/seller/Settings'
 
 import BuyerLayout from './components/BuyerLayout'
 import Shop from './pages/buyer/Shop'
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="products" element={<Products />} />
           <Route path="orders" element={<SellerOrders />} />
           <Route path="messages" element={<SellerMessages />} />
+          <Route path="settings" element={<SellerSettings />} />
         </Route>
 
         <Route path="/buyer" element={<ProtectedBuyer><BuyerLayout /></ProtectedBuyer>}>

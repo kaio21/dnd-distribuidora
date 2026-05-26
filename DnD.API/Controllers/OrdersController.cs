@@ -34,6 +34,19 @@ public class OrdersController : ControllerBase
         var buyer = await _db.Buyers.FindAsync(buyerId);
         if (buyer == null) return Unauthorized();
 
+        var settings = await _db.StoreSettings.FirstOrDefaultAsync();
+        if (settings != null)
+        {
+            if (!settings.IsOpen)
+                return BadRequest(new { message = "A loja está fechada no momento. Tente mais tarde." });
+
+            var brtNow = DateTime.UtcNow.AddHours(-3).TimeOfDay;
+            var open  = TimeSpan.Parse(settings.OpenTime);
+            var close = TimeSpan.Parse(settings.CloseTime);
+            if (brtNow < open || brtNow >= close)
+                return BadRequest(new { message = $"Pedidos aceitos apenas das {settings.OpenTime} às {settings.CloseTime} (horário de Brasília)." });
+        }
+
         var order = new Order { BuyerId = buyerId };
         var items = new List<OrderItem>();
 
