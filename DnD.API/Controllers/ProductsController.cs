@@ -1,6 +1,7 @@
 using DnD.API.Data;
 using DnD.API.DTOs;
 using DnD.API.Models;
+using DnD.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
