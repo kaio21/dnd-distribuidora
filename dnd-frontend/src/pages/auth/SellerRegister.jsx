@@ -5,21 +5,23 @@ import toast from 'react-hot-toast'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { Store, Eye, EyeOff } from 'lucide-react'
+import { maskCPF, stripMask } from '../../utils/masks'
 
 export default function SellerRegister() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
+  const [cpf, setCpf] = useState('')
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm()
 
   const onSubmit = async (data) => {
     try {
-      const res = await api.post('/auth/seller/register', data)
+      const res = await api.post('/auth/seller/register', { ...data, cpf: stripMask(cpf) })
       login(res.data)
       toast.success('Conta criada com sucesso!')
       navigate('/seller/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Erro ao cadastrar')
+      toast.error(err.response?.data?.message || 'Erro ao cadastrar. Verifique os dados.')
     }
   }
 
@@ -46,9 +48,8 @@ export default function SellerRegister() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-            <input {...register('cpf', { required: 'CPF obrigatório' })}
-              placeholder="000.000.000-00" className="input" />
-            {errors.cpf && <p className="text-red-500 text-xs mt-1">{errors.cpf.message}</p>}
+            <input value={cpf} onChange={e => setCpf(maskCPF(e.target.value))}
+              placeholder="000.000.000-00" className="input" required />
           </div>
 
           <div>
