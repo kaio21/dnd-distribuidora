@@ -39,12 +39,7 @@ public class OrdersController : ControllerBase
         {
             if (!settings.IsOpen)
                 return BadRequest(new { message = "A loja está fechada no momento. Tente mais tarde." });
-
-            var brtNow = DateTime.UtcNow.AddHours(-3).TimeOfDay;
-            var open  = TimeSpan.Parse(settings.OpenTime);
-            var close = TimeSpan.Parse(settings.CloseTime);
-            if (brtNow < open || brtNow >= close)
-                return BadRequest(new { message = $"Pedidos aceitos apenas das {settings.OpenTime} às {settings.CloseTime} (horário de Brasília)." });
+            // IsOpen = true: aceita pedidos sem verificar horário
         }
 
         var order = new Order { BuyerId = buyerId };

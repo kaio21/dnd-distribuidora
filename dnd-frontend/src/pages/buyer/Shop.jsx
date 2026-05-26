@@ -33,13 +33,8 @@ export default function Shop() {
   const isStoreOpen = () => {
     if (!storeSettings) return true
     if (!storeSettings.isOpen) return false
-    const now = new Date()
-    const brtOffset = -3 * 60
-    const brtNow = new Date(now.getTime() + (now.getTimezoneOffset() + brtOffset) * 60000)
-    const currentMinutes = brtNow.getHours() * 60 + brtNow.getMinutes()
-    const [oh, om] = storeSettings.openTime.split(':').map(Number)
-    const [ch, cm] = storeSettings.closeTime.split(':').map(Number)
-    return currentMinutes >= oh * 60 + om && currentMinutes < ch * 60 + cm
+    // toggle ligado = aberta, ignora horário
+    return true
   }
 
   const storeOpen = isStoreOpen()
@@ -158,10 +153,8 @@ export default function Shop() {
           }`}>
             <Clock size={16} className="shrink-0" />
             {storeOpen
-              ? `Loja aberta — das ${storeSettings.openTime} às ${storeSettings.closeTime}`
-              : storeSettings.isOpen
-                ? `Loja fechada — abre às ${storeSettings.openTime} (horário de Brasília)`
-                : 'Loja fechada temporariamente'}
+              ? 'Loja aberta — aceitando pedidos'
+              : 'Loja fechada temporariamente'}
           </div>
         )}
 
