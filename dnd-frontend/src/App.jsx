@@ -21,14 +21,16 @@ import BuyerMessages from './pages/buyer/BuyerMessages'
 import PaymentPage from './pages/buyer/PaymentPage'
 
 function ProtectedSeller({ children }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
   if (!user) return <Navigate to="/seller/login" replace />
   if (user.role !== 'Seller') return <Navigate to="/buyer/shop" replace />
   return children
 }
 
 function ProtectedBuyer({ children }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
   if (!user) return <Navigate to="/buyer/login" replace />
   if (user.role !== 'Buyer') return <Navigate to="/seller/dashboard" replace />
   return children
