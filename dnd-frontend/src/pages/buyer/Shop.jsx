@@ -10,7 +10,6 @@ export default function Shop() {
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(true)
-  const [ordering, setOrdering] = useState(false)
   const [search, setSearch] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
   const [ordering] = useState(false)
