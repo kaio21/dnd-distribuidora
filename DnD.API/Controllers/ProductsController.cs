@@ -12,12 +12,12 @@ namespace DnD.API.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IWebHostEnvironment _env;
+    private readonly SupabaseStorageService _storage;
 
-    public ProductsController(AppDbContext db, IWebHostEnvironment env)
+    public ProductsController(AppDbContext db, SupabaseStorageService storage)
     {
         _db = db;
-        _env = env;
+        _storage = storage;
     }
 
     [HttpGet]
@@ -62,7 +62,7 @@ public class ProductsController : ControllerBase
         };
 
         if (image != null)
-            product.ImageUrl = await SaveImage(image);
+            product.ImageUrl = await _storage.UploadAsync(image);
 
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
@@ -88,7 +88,7 @@ public class ProductsController : ControllerBase
         product.IsActive = dto.IsActive;
 
         if (image != null)
-            product.ImageUrl = await SaveImage(image);
+            product.ImageUrl = await _storage.UploadAsync(image);
 
         await _db.SaveChangesAsync();
         return Ok(new ProductResponseDto(product.Id, product.Name, product.Description,
@@ -120,17 +120,4 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
-    private async Task<string> SaveImage(IFormFile file)
-    {
-        var uploadsPath = Path.Combine(_env.WebRootPath, "uploads");
-        Directory.CreateDirectory(uploadsPath);
-
-        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-        var filePath = Path.Combine(uploadsPath, fileName);
-
-        using var stream = new FileStream(filePath, FileMode.Create);
-        await file.CopyToAsync(stream);
-
-        return $"/uploads/{fileName}";
-    }
 }
