@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import { ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle, X, ChevronDown, ChevronRight, Clock, MessageCircle, CheckCircle } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
 export default function Shop() {
-  const { user } = useAuth()
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(true)
