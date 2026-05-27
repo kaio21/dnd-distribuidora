@@ -9,7 +9,7 @@ const emptyForm = { name: '', description: '', category: '', costPrice: '', sale
 
 export default function Products() {
   const [products, setProducts] = useState([])
-  const [categories, setCategories] = useState([])
+  const [categoryList, setCategoryList] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -24,7 +24,7 @@ export default function Products() {
   const load = () => {
     Promise.all([api.get('/products'), api.get('/categories')]).then(([prodRes, catRes]) => {
       setProducts(prodRes.data)
-      setCategories(catRes.data)
+      setCategoryList(catRes.data)
       const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
       setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
     }).finally(() => setLoading(false))
@@ -229,9 +229,9 @@ export default function Products() {
                   onChange={e => setForm(f => ({...f, category: e.target.value}))}
                   className="input">
                   <option value="">Sem categoria</option>
-                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  {categoryList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
-                {categories.length === 0 && (
+                {categoryList.length === 0 && (
                   <p className="text-xs text-gray-400 mt-1">Crie categorias em <strong>Categorias</strong> para organizar produtos.</p>
                 )}
               </div>
