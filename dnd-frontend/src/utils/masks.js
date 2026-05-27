@@ -32,3 +32,6 @@ export const maskExpiry = (v) =>
     .slice(0, 5)
 
 export const stripMask = (v) => v.replace(/\D/g, '')
+
+export const maskCurrency = (v) =>
+  `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`

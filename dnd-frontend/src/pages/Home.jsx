@@ -35,7 +35,7 @@ export default function Home() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: '#eef2f8' }}>
       {/* Header */}
       <header className="bg-blue-900 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-lg">
         <div className="flex items-center gap-3">
@@ -117,10 +117,10 @@ export default function Home() {
                   <div className="border-t border-gray-100">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
                       {byCategory[cat].map(p => (
-                        <div key={p.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                        <div key={p.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
                           <div className="aspect-video bg-gray-100 overflow-hidden">
                             {p.imageUrl
-                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
                               : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
                           </div>
                           <div className="p-3 flex flex-col flex-1">

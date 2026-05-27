@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
-import { ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle, X, ChevronDown, ChevronRight, Clock, MessageCircle, CheckCircle } from 'lucide-react'
+import {
+  ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle,
+  X, ChevronDown, ChevronRight, Clock, MessageCircle, CheckCircle,
+  User, MapPin, Phone
+} from 'lucide-react'
+import { maskCPF, maskCNPJ, maskPhone } from '../../utils/masks'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
@@ -14,7 +19,10 @@ export default function Shop() {
   const [openCategories, setOpenCategories] = useState({})
   const [storeSettings, setStoreSettings] = useState(null)
   const [ordering, setOrdering] = useState(false)
-  const [successOrder, setSuccessOrder] = useState(null) // { id, whatsappUrl }
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [buyerProfile, setBuyerProfile] = useState(null)
+  const [loadingProfile, setLoadingProfile] = useState(false)
+  const [successOrder, setSuccessOrder] = useState(null)
 
   useEffect(() => {
     Promise.all([
@@ -33,7 +41,6 @@ export default function Shop() {
     if (!storeSettings.isOpen) return false
     return true
   }
-
   const storeOpen = isStoreOpen()
 
   const addToCart = (product) => {
@@ -69,6 +76,23 @@ export default function Shop() {
     if (!storeOpen) { toast.error('A loja está fechada. Tente durante o horário de funcionamento.'); return }
     if (cart.length === 0) { toast.error('Carrinho vazio'); return }
 
+    if (!buyerProfile) {
+      setLoadingProfile(true)
+      try {
+        const res = await api.get('/buyers/me')
+        setBuyerProfile(res.data)
+      } catch {
+        toast.error('Erro ao carregar dados do perfil')
+        return
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+    setReviewOpen(true)
+    setCartOpen(false)
+  }
+
+  const confirmOrder = async () => {
     setOrdering(true)
     try {
       const res = await api.post('/orders', {
@@ -80,12 +104,12 @@ export default function Shop() {
       const num = storeSettings?.whatsAppNumber?.replace(/\D/g, '')
       if (num) {
         const lines = cart.map(i => `• ${i.name} (${i.qty}x) = ${fmt(i.salePrice * i.qty)}`).join('\n')
-        const msg = `Olá! Realizei um pedido na D&D Distribuidora.\n\n*Pedido #${order.id}*\n${lines}\n\n*Total: ${fmt(cartTotal)}*\n\nAguardo confirmação. Obrigado!`
+        const msg = `Olá! Realizei um pedido na D&D Distribuidora.\n\n*Pedido #${order.id}*\n${lines}\n\n*Total: ${fmt(cartTotal)}*\n\nNome: ${buyerProfile?.name}\nLoja: ${buyerProfile?.storeName}\nTelefone: ${buyerProfile?.phone}\n\nAguardo confirmação. Obrigado!`
         whatsappUrl = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
       }
 
       setCart([])
-      setCartOpen(false)
+      setReviewOpen(false)
       setSuccessOrder({ id: order.id, whatsappUrl })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erro ao realizar pedido')
@@ -141,8 +165,8 @@ export default function Shop() {
             <span className="font-semibold text-gray-700">Total</span>
             <span className="text-xl font-black text-gray-900">{fmt(cartTotal)}</span>
           </div>
-          <button onClick={handleOrder} disabled={ordering} className="btn-primary w-full py-3 text-base">
-            {ordering ? 'Enviando pedido...' : 'Finalizar pedido'}
+          <button onClick={handleOrder} disabled={loadingProfile} className="btn-primary w-full py-3 text-base">
+            {loadingProfile ? 'Carregando...' : 'Revisar pedido'}
           </button>
         </div>
       )}
@@ -157,6 +181,80 @@ export default function Shop() {
 
   return (
     <div className="flex" style={{ height: '100%', minHeight: 0 }}>
+
+      {/* Modal de revisão do pedido */}
+      {reviewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <h2 className="text-lg font-black text-gray-900">Revisão do Pedido</h2>
+              <button onClick={() => setReviewOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Dados do comprador */}
+              {buyerProfile && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3">Seus dados</p>
+                  <div className="flex items-start gap-2">
+                    <User size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{buyerProfile.name}</p>
+                      <p className="text-xs text-gray-500">{buyerProfile.storeName}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone size={14} className="text-blue-500 shrink-0" />
+                    <p className="text-sm text-gray-700">{maskPhone(buyerProfile.phone)}</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <MapPin size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-gray-700">{buyerProfile.address}</p>
+                  </div>
+                  <div className="text-xs text-gray-500 pt-1 border-t border-blue-100 mt-2 flex gap-4">
+                    <span>CPF: {maskCPF(buyerProfile.cpf)}</span>
+                    <span>CNPJ: {maskCNPJ(buyerProfile.cnpj)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Itens do pedido */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Itens do pedido</p>
+                <div className="space-y-2">
+                  {cart.map(item => (
+                    <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{item.name}</p>
+                        <p className="text-xs text-gray-500">{item.qty}x {fmt(item.salePrice)}</p>
+                      </div>
+                      <p className="text-sm font-bold text-blue-700">{fmt(item.salePrice * item.qty)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center">
+                <span className="font-bold text-gray-700 text-lg">Total</span>
+                <span className="text-2xl font-black text-gray-900">{fmt(cartTotal)}</span>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-gray-100 shrink-0">
+              <button
+                onClick={confirmOrder}
+                disabled={ordering}
+                className="btn-primary w-full py-3 text-base font-bold">
+                {ordering ? 'Enviando pedido...' : 'Confirmar e enviar pedido'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de pedido realizado */}
       {successOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -165,7 +263,7 @@ export default function Shop() {
             <h2 className="text-xl font-black text-gray-900 mb-1">Pedido #{successOrder.id} realizado!</h2>
             <p className="text-gray-500 text-sm mb-6">Seu pedido foi enviado com sucesso. Acompanhe o status na aba Pedidos.</p>
 
-            {successOrder.whatsappUrl ? (
+            {successOrder.whatsappUrl && (
               <a
                 href={successOrder.whatsappUrl}
                 target="_blank"
@@ -174,11 +272,9 @@ export default function Shop() {
                 <MessageCircle size={20} />
                 Enviar pedido pelo WhatsApp
               </a>
-            ) : null}
+            )}
 
-            <button
-              onClick={() => setSuccessOrder(null)}
-              className="btn-secondary w-full">
+            <button onClick={() => setSuccessOrder(null)} className="btn-secondary w-full">
               Continuar comprando
             </button>
           </div>
@@ -192,7 +288,6 @@ export default function Shop() {
           <p className="text-gray-500 text-sm mt-1">{products.length} produto(s) disponível(is)</p>
         </div>
 
-        {/* Banner status */}
         {storeSettings && (
           <div className={`flex items-center gap-3 rounded-xl px-4 py-3 mb-4 text-sm font-medium ${
             storeOpen
@@ -200,9 +295,7 @@ export default function Shop() {
               : 'bg-red-50 border border-red-200 text-red-700'
           }`}>
             <Clock size={16} className="shrink-0" />
-            {storeOpen
-              ? 'Loja aberta — aceitando pedidos'
-              : 'Loja fechada temporariamente'}
+            {storeOpen ? 'Loja aberta — aceitando pedidos' : 'Loja fechada temporariamente'}
           </div>
         )}
 
@@ -236,10 +329,11 @@ export default function Shop() {
                   <div className="border-t border-gray-100">
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
                       {byCategory[cat].map(p => (
-                        <div key={p.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                        <div key={p.id}
+                          className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
                           <div className="aspect-video bg-gray-100 overflow-hidden">
                             {p.imageUrl
-                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
                               : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
                           </div>
                           <div className="p-3 flex flex-col flex-1">
