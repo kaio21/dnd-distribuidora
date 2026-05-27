@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
-import { Clock, ToggleLeft, ToggleRight, Save } from 'lucide-react'
+import { Clock, ToggleLeft, ToggleRight, Save, Phone } from 'lucide-react'
 
 export default function SellerSettings() {
-  const [form, setForm] = useState({ openTime: '08:00', closeTime: '18:00', isOpen: true })
+  const [form, setForm] = useState({ openTime: '08:00', closeTime: '18:00', isOpen: true, whatsAppNumber: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     api.get('/settings')
-      .then(r => setForm({ openTime: r.data.openTime, closeTime: r.data.closeTime, isOpen: r.data.isOpen }))
+      .then(r => setForm({
+        openTime: r.data.openTime,
+        closeTime: r.data.closeTime,
+        isOpen: r.data.isOpen,
+        whatsAppNumber: r.data.whatsAppNumber || ''
+      }))
       .finally(() => setLoading(false))
   }, [])
 
@@ -79,6 +84,21 @@ export default function SellerSettings() {
             value={form.closeTime}
             onChange={e => setForm(f => ({ ...f, closeTime: e.target.value }))}
             className="input" />
+        </div>
+
+        {/* WhatsApp */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Phone size={14} className="inline mr-1" />
+            Número WhatsApp da loja
+          </label>
+          <input
+            type="text"
+            value={form.whatsAppNumber}
+            onChange={e => setForm(f => ({ ...f, whatsAppNumber: e.target.value }))}
+            placeholder="Ex: 5511999999999 (com DDI e DDD, sem espaços)"
+            className="input" />
+          <p className="text-xs text-gray-400 mt-1">Formato: 5511999999999 (55 = Brasil, 11 = DDD, sem +, traços ou espaços)</p>
         </div>
 
         {/* Resumo */}

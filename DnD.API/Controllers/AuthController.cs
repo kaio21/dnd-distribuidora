@@ -26,19 +26,24 @@ public class AuthController : ControllerBase
         if (await _db.Sellers.AnyAsync(s => s.Email == dto.Email || s.CPF == dto.CPF))
             return Conflict(new { message = "Email ou CPF já cadastrado." });
 
+        var hasAdmin = await _db.Sellers.AnyAsync(s => s.IsAdmin);
         var seller = new Seller
         {
             Name = dto.Name,
             CPF = dto.CPF,
             Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            IsApproved = !hasAdmin // primeiro vendedor aprovado automaticamente; demais ficam pendentes
         };
 
         _db.Sellers.Add(seller);
         await _db.SaveChangesAsync();
 
+        if (!seller.IsApproved)
+            return Ok(new { pending = true, message = "Cadastro realizado! Aguarde aprovação do administrador para acessar." });
+
         var token = _jwt.GenerateToken(seller.Id, seller.Email, "Seller", seller.Name);
-        return Ok(new AuthResponseDto(token, "Seller", seller.Id, seller.Name, seller.Email));
+        return Ok(new AuthResponseDto(token, "Seller", seller.Id, seller.Name, seller.Email, seller.IsAdmin));
     }
 
     [HttpPost("seller/login")]
@@ -48,8 +53,11 @@ public class AuthController : ControllerBase
         if (seller == null || !BCrypt.Net.BCrypt.Verify(dto.Password, seller.PasswordHash))
             return Unauthorized(new { message = "Email ou senha inválidos." });
 
+        if (!seller.IsApproved)
+            return Unauthorized(new { message = "Conta ainda não aprovada. Aguarde o administrador." });
+
         var token = _jwt.GenerateToken(seller.Id, seller.Email, "Seller", seller.Name);
-        return Ok(new AuthResponseDto(token, "Seller", seller.Id, seller.Name, seller.Email));
+        return Ok(new AuthResponseDto(token, "Seller", seller.Id, seller.Name, seller.Email, seller.IsAdmin));
     }
 
     [HttpPost("buyer/register")]

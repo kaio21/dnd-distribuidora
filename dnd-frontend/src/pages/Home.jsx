@@ -1,63 +1,163 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import api from '../api/axios'
+import { ShoppingCart, Package, Image, AlertCircle, ChevronDown, ChevronRight, Clock, Search, LogIn } from 'lucide-react'
+
+const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
 export default function Home() {
+  const [products, setProducts] = useState([])
+  const [storeSettings, setStoreSettings] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [openCategories, setOpenCategories] = useState({})
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/products?activeOnly=true'),
+      api.get('/settings')
+    ]).then(([prodRes, settingsRes]) => {
+      setProducts(prodRes.data)
+      setStoreSettings(settingsRes.data)
+      const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
+      setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const storeOpen = storeSettings?.isOpen ?? true
+
+  const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
+
+  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+  const categories = [...new Set(filtered.map(p => p.category || 'Geral'))].sort()
+  const byCategory = Object.fromEntries(
+    categories.map(cat => [cat, filtered.filter(p => (p.category || 'Geral') === cat)])
+  )
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex flex-col">
-      <header className="px-8 py-6 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-blue-900 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="bg-white rounded-xl w-10 h-10 flex items-center justify-center">
-            <span className="text-blue-700 font-black text-lg">D</span>
+          <div className="bg-blue-600 rounded-xl w-9 h-9 flex items-center justify-center shrink-0">
+            <span className="text-white font-black text-lg">D</span>
           </div>
-          <span className="text-white font-bold text-xl">D&D Distribuidora</span>
+          <span className="text-white font-bold text-lg">D&D Distribuidora</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link to="/buyer/login"
+            className="flex items-center gap-1.5 bg-white text-blue-700 font-semibold px-3 py-2 rounded-lg text-sm hover:bg-blue-50 transition">
+            <LogIn size={15} />
+            <span className="hidden sm:inline">Entrar / Comprar</span>
+            <span className="sm:hidden">Entrar</span>
+          </Link>
+          <Link to="/seller/login"
+            className="hidden sm:flex items-center gap-1.5 border border-white/30 text-white font-semibold px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition">
+            Área do Vendedor
+          </Link>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 text-center">
-        <h1 className="text-5xl font-black text-white mb-4 leading-tight">
-          D&D Distribuidora<br />
-          <span className="text-blue-200">Atacadista</span>
-        </h1>
-        <p className="text-blue-100 text-lg mb-12 max-w-md">
-          Conectando lojistas e compradores com agilidade, controle de estoque e gestão de lucros em tempo real.
-        </p>
+      {/* Banner da loja */}
+      <div className="bg-blue-800 px-4 md:px-8 py-6">
+        <h1 className="text-white font-black text-2xl md:text-3xl mb-1">Catálogo de Produtos</h1>
+        <p className="text-blue-200 text-sm">Faça login para realizar pedidos e acompanhar suas compras</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-left">
-            <div className="text-3xl mb-4">🏪</div>
-            <h2 className="text-white font-bold text-2xl mb-2">Sou Vendedor (Logista)</h2>
-            <p className="text-blue-200 text-sm mb-6">Gerencie produtos, acompanhe pedidos e veja seu lucro em tempo real.</p>
-            <div className="flex flex-col gap-3">
-              <Link to="/seller/login"
-                className="bg-white text-blue-700 font-bold py-3 px-6 rounded-xl hover:bg-blue-50 transition text-center">
-                Entrar como Vendedor
-              </Link>
-              <Link to="/seller/register"
-                className="border border-white/40 text-white font-semibold py-3 px-6 rounded-xl hover:bg-white/10 transition text-center">
-                Criar conta Vendedor
-              </Link>
-            </div>
+        {storeSettings && (
+          <div className={`inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full text-xs font-semibold ${
+            storeOpen ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200'
+          }`}>
+            <Clock size={12} />
+            {storeOpen ? 'Loja aberta' : 'Loja fechada temporariamente'}
           </div>
+        )}
+      </div>
 
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-left">
-            <div className="text-3xl mb-4">🛒</div>
-            <h2 className="text-white font-bold text-2xl mb-2">Sou Comprador</h2>
-            <p className="text-blue-200 text-sm mb-6">Encontre produtos, faça pedidos e acompanhe suas compras com facilidade.</p>
-            <div className="flex flex-col gap-3">
-              <Link to="/buyer/login"
-                className="bg-white text-blue-700 font-bold py-3 px-6 rounded-xl hover:bg-blue-50 transition text-center">
-                Entrar como Comprador
-              </Link>
-              <Link to="/buyer/register"
-                className="border border-white/40 text-white font-semibold py-3 px-6 rounded-xl hover:bg-white/10 transition text-center">
-                Criar conta Comprador
-              </Link>
-            </div>
+      {/* Conteúdo */}
+      <main className="flex-1 px-4 md:px-8 py-6 max-w-6xl mx-auto w-full">
+        <div className="mb-5">
+          <div className="relative max-w-lg">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar produto..."
+              className="input pl-9" />
           </div>
         </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20">
+            <Package size={48} className="text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">Nenhum produto disponível no momento</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {categories.map(cat => (
+              <div key={cat} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <button
+                  onClick={() => toggleCategory(cat)}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition">
+                  <div className="flex items-center gap-3">
+                    {openCategories[cat]
+                      ? <ChevronDown size={18} className="text-blue-600" />
+                      : <ChevronRight size={18} className="text-gray-400" />}
+                    <span className="font-bold text-gray-800">{cat}</span>
+                    <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
+                      {byCategory[cat].length}
+                    </span>
+                  </div>
+                </button>
+
+                {openCategories[cat] && (
+                  <div className="border-t border-gray-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                      {byCategory[cat].map(p => (
+                        <div key={p.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                          <div className="aspect-video bg-gray-100 overflow-hidden">
+                            {p.imageUrl
+                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                              : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
+                          </div>
+                          <div className="p-3 flex flex-col flex-1">
+                            <h3 className="font-bold text-gray-900 mb-1 text-sm">{p.name}</h3>
+                            {p.description && <p className="text-gray-500 text-xs mb-2 line-clamp-2">{p.description}</p>}
+
+                            <div className="flex items-center justify-between mt-auto mb-3">
+                              <p className="text-xl font-black text-blue-700">{fmt(p.salePrice)}</p>
+                              {p.stock === 0 ? (
+                                <span className="flex items-center gap-1 text-red-500 text-xs font-medium">
+                                  <AlertCircle size={13} /> Sem estoque
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">{p.stock} disp.</span>
+                              )}
+                            </div>
+
+                            <Link
+                              to="/buyer/login"
+                              className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-2">
+                              <ShoppingCart size={14} />
+                              {p.stock === 0 ? 'Sem estoque' : 'Entrar para comprar'}
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
-      <footer className="text-center py-6 text-blue-300 text-sm">
-        © 2024 D&D Distribuidora Atacadista — Todos os direitos reservados
+      <footer className="text-center py-5 text-gray-400 text-xs border-t border-gray-200">
+        © 2025 D&D Distribuidora Atacadista
       </footer>
     </div>
   )

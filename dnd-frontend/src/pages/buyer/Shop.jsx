@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
-import { ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle, X, ChevronDown, ChevronRight, Clock } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle, X, ChevronDown, ChevronRight, Clock, MessageCircle, CheckCircle } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
 export default function Shop() {
+  const { user } = useAuth()
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(true)
@@ -14,7 +15,8 @@ export default function Shop() {
   const [cartOpen, setCartOpen] = useState(false)
   const [openCategories, setOpenCategories] = useState({})
   const [storeSettings, setStoreSettings] = useState(null)
-  const navigate = useNavigate()
+  const [ordering, setOrdering] = useState(false)
+  const [successOrder, setSuccessOrder] = useState(null) // { id, whatsappUrl }
 
   useEffect(() => {
     Promise.all([
@@ -23,17 +25,14 @@ export default function Shop() {
     ]).then(([prodRes, settingsRes]) => {
       setProducts(prodRes.data)
       setStoreSettings(settingsRes.data)
-      // abrir todas as categorias por padrão
       const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
       setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
     }).finally(() => setLoading(false))
   }, [])
 
-  // verifica se a loja está aberta
   const isStoreOpen = () => {
     if (!storeSettings) return true
     if (!storeSettings.isOpen) return false
-    // toggle ligado = aberta, ignora horário
     return true
   }
 
@@ -68,10 +67,33 @@ export default function Shop() {
   const cartCount = cart.reduce((a, i) => a + i.qty, 0)
   const cartTotal = cart.reduce((a, i) => a + i.salePrice * i.qty, 0)
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     if (!storeOpen) { toast.error('A loja está fechada. Tente durante o horário de funcionamento.'); return }
     if (cart.length === 0) { toast.error('Carrinho vazio'); return }
-    navigate('/buyer/payment', { state: { cart } })
+
+    setOrdering(true)
+    try {
+      const res = await api.post('/orders', {
+        items: cart.map(i => ({ productId: i.id, quantity: i.qty }))
+      })
+      const order = res.data
+
+      let whatsappUrl = null
+      const num = storeSettings?.whatsAppNumber?.replace(/\D/g, '')
+      if (num) {
+        const lines = cart.map(i => `• ${i.name} (${i.qty}x) = ${fmt(i.salePrice * i.qty)}`).join('\n')
+        const msg = `Olá! Realizei um pedido na D&D Distribuidora.\n\n*Pedido #${order.id}*\n${lines}\n\n*Total: ${fmt(cartTotal)}*\n\nAguardo confirmação. Obrigado!`
+        whatsappUrl = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
+      }
+
+      setCart([])
+      setCartOpen(false)
+      setSuccessOrder({ id: order.id, whatsappUrl })
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erro ao realizar pedido')
+    } finally {
+      setOrdering(false)
+    }
   }
 
   const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
@@ -116,13 +138,13 @@ export default function Shop() {
         )}
       </div>
       {cart.length > 0 && (
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 shrink-0">
           <div className="flex justify-between mb-4">
             <span className="font-semibold text-gray-700">Total</span>
             <span className="text-xl font-black text-gray-900">{fmt(cartTotal)}</span>
           </div>
-          <button onClick={handleOrder} className="btn-primary w-full py-3 text-base">
-            Finalizar pedido
+          <button onClick={handleOrder} disabled={ordering} className="btn-primary w-full py-3 text-base">
+            {ordering ? 'Enviando pedido...' : 'Finalizar pedido'}
           </button>
         </div>
       )}
@@ -136,15 +158,43 @@ export default function Shop() {
   )
 
   return (
-    <div className="flex h-full overflow-hidden" style={{ height: '100vh' }}>
+    <div className="flex" style={{ height: '100%', minHeight: 0 }}>
+      {/* Modal de pedido realizado */}
+      {successOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <CheckCircle size={56} className="text-green-500 mx-auto mb-3" />
+            <h2 className="text-xl font-black text-gray-900 mb-1">Pedido #{successOrder.id} realizado!</h2>
+            <p className="text-gray-500 text-sm mb-6">Seu pedido foi enviado com sucesso. Acompanhe o status na aba Pedidos.</p>
+
+            {successOrder.whatsappUrl ? (
+              <a
+                href={successOrder.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition mb-3">
+                <MessageCircle size={20} />
+                Enviar pedido pelo WhatsApp
+              </a>
+            ) : null}
+
+            <button
+              onClick={() => setSuccessOrder(null)}
+              className="btn-secondary w-full">
+              Continuar comprando
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Produtos */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Loja</h1>
           <p className="text-gray-500 text-sm mt-1">{products.length} produto(s) disponível(is)</p>
         </div>
 
-        {/* Banner horário */}
+        {/* Banner status */}
         {storeSettings && (
           <div className={`flex items-center gap-3 rounded-xl px-4 py-3 mb-4 text-sm font-medium ${
             storeOpen
@@ -172,7 +222,6 @@ export default function Shop() {
           <div className="space-y-3">
             {categories.map(cat => (
               <div key={cat} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {/* cabeçalho da categoria */}
                 <button
                   onClick={() => toggleCategory(cat)}
                   className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition">
@@ -185,38 +234,39 @@ export default function Shop() {
                   </div>
                 </button>
 
-                {/* produtos da categoria */}
                 {openCategories[cat] && (
                   <div className="border-t border-gray-100">
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
                       {byCategory[cat].map(p => (
-                        <div key={p.id} className="card group">
-                          <div className="aspect-video bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                        <div key={p.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                          <div className="aspect-video bg-gray-100 overflow-hidden">
                             {p.imageUrl
-                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                               : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
                           </div>
-                          <h3 className="font-bold text-gray-900 mb-1">{p.name}</h3>
-                          <p className="text-gray-500 text-sm mb-3 line-clamp-2">{p.description}</p>
+                          <div className="p-3 flex flex-col flex-1">
+                            <h3 className="font-bold text-gray-900 mb-1 text-sm">{p.name}</h3>
+                            {p.description && <p className="text-gray-500 text-xs mb-2 line-clamp-2">{p.description}</p>}
 
-                          <div className="flex items-center justify-between mb-4">
-                            <p className="text-2xl font-black text-blue-700">{fmt(p.salePrice)}</p>
-                            {p.stock === 0 ? (
-                              <span className="flex items-center gap-1 text-red-500 text-sm font-medium">
-                                <AlertCircle size={16} /> Sem estoque
-                              </span>
-                            ) : (
-                              <span className="text-gray-500 text-sm">{p.stock} disponível</span>
-                            )}
+                            <div className="flex items-center justify-between mb-3 mt-auto">
+                              <p className="text-xl font-black text-blue-700">{fmt(p.salePrice)}</p>
+                              {p.stock === 0 ? (
+                                <span className="flex items-center gap-1 text-red-500 text-xs font-medium">
+                                  <AlertCircle size={14} /> Sem estoque
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">{p.stock} disp.</span>
+                              )}
+                            </div>
+
+                            <button
+                              onClick={() => addToCart(p)}
+                              disabled={p.stock === 0 || !storeOpen}
+                              className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-2">
+                              <ShoppingCart size={15} />
+                              {!storeOpen ? 'Loja fechada' : p.stock === 0 ? 'Sem estoque' : 'Adicionar'}
+                            </button>
                           </div>
-
-                          <button
-                            onClick={() => addToCart(p)}
-                            disabled={p.stock === 0 || !storeOpen}
-                            className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40">
-                            <ShoppingCart size={16} />
-                            {!storeOpen ? 'Loja fechada' : 'Adicionar'}
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -229,7 +279,7 @@ export default function Shop() {
       </div>
 
       {/* Carrinho — desktop sidebar */}
-      <aside className="hidden md:flex w-80 bg-white border-l border-gray-200 flex-col">
+      <aside className="hidden md:flex w-80 bg-white border-l border-gray-200 flex-col shrink-0">
         <div className="p-5 border-b border-gray-200">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
             <ShoppingCart size={18} /> Carrinho
@@ -244,7 +294,7 @@ export default function Shop() {
       </aside>
 
       {/* Botão flutuante — mobile */}
-      {cartCount > 0 && (
+      {cartCount > 0 && !cartOpen && (
         <button onClick={() => setCartOpen(true)}
           className="fixed bottom-20 right-4 md:hidden bg-blue-600 text-white rounded-full px-4 py-3 flex items-center gap-2 shadow-xl z-40">
           <ShoppingCart size={18} />

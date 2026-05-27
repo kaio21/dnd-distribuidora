@@ -33,5 +33,6 @@ public record AuthResponseDto(
     string Role,
     int UserId,
     string Name,
-    string Email
+    string Email,
+    bool IsAdmin = false
 );

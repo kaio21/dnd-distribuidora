@@ -7,5 +7,7 @@ public class Seller
     public string CPF { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    public bool IsAdmin { get; set; } = false;
+    public bool IsApproved { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

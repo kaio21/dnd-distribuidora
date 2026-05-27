@@ -21,7 +21,7 @@ public class SettingsController : ControllerBase
     {
         var s = await _db.StoreSettings.FirstOrDefaultAsync()
             ?? new StoreSettings();
-        return Ok(new StoreSettingsDto(s.OpenTime, s.CloseTime, s.IsOpen));
+        return Ok(new StoreSettingsDto(s.OpenTime, s.CloseTime, s.IsOpen, s.WhatsAppNumber));
     }
 
     [HttpPut]
@@ -39,7 +39,8 @@ public class SettingsController : ControllerBase
         s.OpenTime = dto.OpenTime;
         s.CloseTime = dto.CloseTime;
         s.IsOpen = dto.IsOpen;
+        s.WhatsAppNumber = dto.WhatsAppNumber ?? s.WhatsAppNumber;
         await _db.SaveChangesAsync();
-        return Ok(new StoreSettingsDto(s.OpenTime, s.CloseTime, s.IsOpen));
+        return Ok(new StoreSettingsDto(s.OpenTime, s.CloseTime, s.IsOpen, s.WhatsAppNumber));
     }
 }

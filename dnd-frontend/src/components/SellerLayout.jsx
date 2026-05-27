@@ -1,18 +1,20 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { LayoutDashboard, Package, ShoppingBag, MessageSquare, LogOut, Store, Settings } from 'lucide-react'
-
-const navItems = [
-  { to: '/seller/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/seller/products',  icon: Package,          label: 'Produtos' },
-  { to: '/seller/orders',    icon: ShoppingBag,      label: 'Pedidos' },
-  { to: '/seller/messages',  icon: MessageSquare,    label: 'Mensagens' },
-  { to: '/seller/settings',  icon: Settings,         label: 'Configurações' },
-]
+import { LayoutDashboard, Package, ShoppingBag, MessageSquare, LogOut, Store, Settings, Tag, Shield } from 'lucide-react'
 
 export default function SellerLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+
+  const navItems = [
+    { to: '/seller/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/seller/products',  icon: Package,          label: 'Produtos' },
+    { to: '/seller/categories', icon: Tag,             label: 'Categorias' },
+    { to: '/seller/orders',    icon: ShoppingBag,      label: 'Pedidos' },
+    { to: '/seller/messages',  icon: MessageSquare,    label: 'Mensagens' },
+    { to: '/seller/settings',  icon: Settings,         label: 'Configurações' },
+    ...(user?.isAdmin ? [{ to: '/seller/admin', icon: Shield, label: 'Admin' }] : []),
+  ]
 
   const handleLogout = () => { logout(); navigate('/') }
 

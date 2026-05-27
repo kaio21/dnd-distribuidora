@@ -9,6 +9,7 @@ const emptyForm = { name: '', description: '', category: '', costPrice: '', sale
 
 export default function Products() {
   const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -21,10 +22,10 @@ export default function Products() {
   const fileRef = useRef()
 
   const load = () => {
-    api.get('/products').then(r => {
-      setProducts(r.data)
-      // abrir todas as categorias por padrão
-      const cats = [...new Set(r.data.map(p => p.category || 'Geral'))]
+    Promise.all([api.get('/products'), api.get('/categories')]).then(([prodRes, catRes]) => {
+      setProducts(prodRes.data)
+      setCategories(catRes.data)
+      const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
       setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
     }).finally(() => setLoading(false))
   }
@@ -100,9 +101,6 @@ export default function Products() {
   }
 
   const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
-
-  // categorias existentes para o datalist
-  const existingCategories = [...new Set(products.map(p => p.category).filter(Boolean))]
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
 
@@ -226,15 +224,16 @@ export default function Products() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                <input
+                <select
                   value={form.category}
                   onChange={e => setForm(f => ({...f, category: e.target.value}))}
-                  list="categories-list"
-                  placeholder="Ex: Roupas, Calçados, Acessórios..."
-                  className="input" />
-                <datalist id="categories-list">
-                  {existingCategories.map(c => <option key={c} value={c} />)}
-                </datalist>
+                  className="input">
+                  <option value="">Sem categoria</option>
+                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+                {categories.length === 0 && (
+                  <p className="text-xs text-gray-400 mt-1">Crie categorias em <strong>Categorias</strong> para organizar produtos.</p>
+                )}
               </div>
 
               <div>

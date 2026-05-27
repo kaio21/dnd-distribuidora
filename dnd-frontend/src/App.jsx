@@ -10,15 +10,16 @@ import BuyerRegister from './pages/auth/BuyerRegister'
 import SellerLayout from './components/SellerLayout'
 import Dashboard from './pages/seller/Dashboard'
 import Products from './pages/seller/Products'
+import Categories from './pages/seller/Categories'
 import SellerOrders from './pages/seller/SellerOrders'
 import SellerMessages from './pages/seller/SellerMessages'
 import SellerSettings from './pages/seller/Settings'
+import AdminPanel from './pages/seller/AdminPanel'
 
 import BuyerLayout from './components/BuyerLayout'
 import Shop from './pages/buyer/Shop'
 import BuyerOrders from './pages/buyer/BuyerOrders'
 import BuyerMessages from './pages/buyer/BuyerMessages'
-import PaymentPage from './pages/buyer/PaymentPage'
 
 function ProtectedSeller({ children }) {
   const { user, loading } = useAuth()
@@ -51,15 +52,16 @@ export default function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
+          <Route path="categories" element={<Categories />} />
           <Route path="orders" element={<SellerOrders />} />
           <Route path="messages" element={<SellerMessages />} />
           <Route path="settings" element={<SellerSettings />} />
+          <Route path="admin" element={<AdminPanel />} />
         </Route>
 
         <Route path="/buyer" element={<ProtectedBuyer><BuyerLayout /></ProtectedBuyer>}>
           <Route index element={<Navigate to="shop" replace />} />
           <Route path="shop" element={<Shop />} />
-          <Route path="payment" element={<PaymentPage />} />
           <Route path="orders" element={<BuyerOrders />} />
           <Route path="messages" element={<BuyerMessages />} />
         </Route>

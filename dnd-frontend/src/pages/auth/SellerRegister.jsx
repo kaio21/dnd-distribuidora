@@ -17,6 +17,11 @@ export default function SellerRegister() {
   const onSubmit = async (data) => {
     try {
       const res = await api.post('/auth/seller/register', { ...data, cpf: stripMask(cpf) })
+      if (res.data.pending) {
+        toast.success(res.data.message, { duration: 6000 })
+        navigate('/seller/login')
+        return
+      }
       login(res.data)
       toast.success('Conta criada com sucesso!')
       navigate('/seller/dashboard')
