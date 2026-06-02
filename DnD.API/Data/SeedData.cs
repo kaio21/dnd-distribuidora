@@ -16,6 +16,7 @@ public static class SeedData
             CPF      = "123.456.789-00",
             Email    = "diego@dnd.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+            Role      = "Admin",
             CreatedAt = DateTime.UtcNow.AddDays(-60)
         };
         db.Sellers.Add(seller);

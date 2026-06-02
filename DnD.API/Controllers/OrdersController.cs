@@ -99,7 +99,17 @@ public class OrdersController : ControllerBase
             .AsQueryable();
 
         if (role == "Buyer")
+        {
             query = query.Where(o => o.BuyerId == userId);
+        }
+        else if (role == "Seller")
+        {
+            var sellerRole = User.FindFirstValue("SellerRole");
+            // Vendedor enxerga apenas pedidos seus ou sem atribuição
+            if (sellerRole == "Vendedor")
+                query = query.Where(o => o.AttendedBySellerId == null || o.AttendedBySellerId == userId);
+            // Admin e Gerente enxergam todos
+        }
 
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<OrderStatus>(status, out var statusEnum))
             query = query.Where(o => o.Status == statusEnum);

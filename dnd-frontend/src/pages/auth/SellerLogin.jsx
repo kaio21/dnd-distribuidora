@@ -65,11 +65,7 @@ export default function SellerLogin() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Não tem conta?{' '}
-          <Link to="/seller/register" className="text-blue-600 hover:underline font-medium">Cadastrar-se</Link>
-        </p>
-        <p className="text-center text-sm text-gray-500 mt-2">
+        <p className="text-center text-sm text-gray-500 mt-6">
           <Link to="/" className="hover:underline">← Voltar ao início</Link>
         </p>
       </div>

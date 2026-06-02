@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 
 import Home from './pages/Home'
 import SellerLogin from './pages/auth/SellerLogin'
-import SellerRegister from './pages/auth/SellerRegister'
 import BuyerLogin from './pages/auth/BuyerLogin'
 import BuyerRegister from './pages/auth/BuyerRegister'
 
@@ -44,7 +43,6 @@ export default function App() {
         <Route path="/" element={<Home />} />
 
         <Route path="/seller/login" element={<SellerLogin />} />
-        <Route path="/seller/register" element={<SellerRegister />} />
         <Route path="/buyer/login" element={<BuyerLogin />} />
         <Route path="/buyer/register" element={<BuyerRegister />} />
 

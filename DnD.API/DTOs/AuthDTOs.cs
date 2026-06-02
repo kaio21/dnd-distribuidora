@@ -1,10 +1,11 @@
 namespace DnD.API.DTOs;
 
-public record SellerRegisterDto(
+public record CreateSellerDto(
     string Name,
     string CPF,
     string Email,
-    string Password
+    string Password,
+    string Role // "Vendedor" ou "Gerente"
 );
 
 public record SellerLoginDto(
@@ -35,5 +36,6 @@ public record AuthResponseDto(
     int UserId,
     string Name,
     string Email,
-    bool IsAdmin = false
+    bool IsAdmin = false,
+    string? SellerRole = null
 );

@@ -13,7 +13,7 @@ export default function SellerLayout() {
     { to: '/seller/orders',    icon: ShoppingBag,      label: 'Pedidos' },
     { to: '/seller/messages',  icon: MessageSquare,    label: 'Mensagens' },
     { to: '/seller/settings',  icon: Settings,         label: 'Configurações' },
-    ...(user?.isAdmin ? [{ to: '/seller/admin', icon: Shield, label: 'Admin' }] : []),
+    ...(user?.sellerRole === 'Admin' ? [{ to: '/seller/admin', icon: Shield, label: 'Admin' }] : []),
   ]
 
   const handleLogout = () => { logout(); navigate('/') }
@@ -38,6 +38,13 @@ export default function SellerLayout() {
           <p className="text-blue-400 text-xs mb-1">Logado como</p>
           <p className="text-white font-semibold text-sm truncate">{user?.name}</p>
           <p className="text-blue-300 text-xs truncate">{user?.email}</p>
+          {user?.sellerRole && (
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${
+              user.sellerRole === 'Admin' ? 'bg-yellow-400 text-yellow-900' :
+              user.sellerRole === 'Gerente' ? 'bg-purple-400 text-purple-900' :
+              'bg-blue-400 text-blue-900'
+            }`}>{user.sellerRole}</span>
+          )}
         </div>
 
         <nav className="flex-1 p-4 space-y-1">

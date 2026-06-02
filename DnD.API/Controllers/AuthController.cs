@@ -20,32 +20,6 @@ public class AuthController : ControllerBase
         _jwt = jwt;
     }
 
-    [HttpPost("seller/register")]
-    public async Task<IActionResult> SellerRegister([FromBody] SellerRegisterDto dto)
-    {
-        if (await _db.Sellers.AnyAsync(s => s.Email == dto.Email || s.CPF == dto.CPF))
-            return Conflict(new { message = "Email ou CPF já cadastrado." });
-
-        var hasAdmin = await _db.Sellers.AnyAsync(s => s.IsAdmin);
-        var seller = new Seller
-        {
-            Name = dto.Name,
-            CPF = dto.CPF,
-            Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            IsApproved = !hasAdmin // primeiro vendedor aprovado automaticamente; demais ficam pendentes
-        };
-
-        _db.Sellers.Add(seller);
-        await _db.SaveChangesAsync();
-
-        if (!seller.IsApproved)
-            return Ok(new { pending = true, message = "Cadastro realizado! Aguarde aprovação do administrador para acessar." });
-
-        var token = _jwt.GenerateToken(seller.Id, seller.Email, "Seller", seller.Name);
-        return Ok(new AuthResponseDto(token, "Seller", seller.Id, seller.Name, seller.Email, seller.IsAdmin));
-    }
-
     [HttpPost("seller/login")]
     public async Task<IActionResult> SellerLogin([FromBody] SellerLoginDto dto)
     {
@@ -56,8 +30,8 @@ public class AuthController : ControllerBase
         if (!seller.IsApproved)
             return Unauthorized(new { message = "Conta ainda não aprovada. Aguarde o administrador." });
 
-        var token = _jwt.GenerateToken(seller.Id, seller.Email, "Seller", seller.Name);
-        return Ok(new AuthResponseDto(token, "Seller", seller.Id, seller.Name, seller.Email, seller.IsAdmin));
+        var token = _jwt.GenerateToken(seller.Id, seller.Email, "Seller", seller.Name, seller.Role);
+        return Ok(new AuthResponseDto(token, "Seller", seller.Id, seller.Name, seller.Email, seller.Role == "Admin", seller.Role));
     }
 
     [HttpPost("buyer/register")]

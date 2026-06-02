@@ -1,4 +1,6 @@
 using DnD.API.Data;
+using DnD.API.DTOs;
+using DnD.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +19,13 @@ public class AdminController : ControllerBase
 
     private bool IsAdminSeller()
     {
-        var role = User.FindFirstValue(ClaimTypes.Role) ?? User.FindFirstValue("role");
+        var role = User.FindFirstValue(ClaimTypes.Role);
         if (role != "Seller") return false;
+        var sellerRole = User.FindFirstValue("SellerRole");
+        // aceita tanto o novo claim quanto sellers antigos com IsAdmin no DB
+        if (sellerRole == "Admin") return true;
         var id = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        return _db.Sellers.Where(s => s.Id == id && s.IsAdmin).Any();
+        return _db.Sellers.Where(s => s.Id == id && s.Role == "Admin").Any();
     }
 
     [HttpGet("sellers")]
@@ -28,11 +33,51 @@ public class AdminController : ControllerBase
     {
         if (!IsAdminSeller()) return Forbid();
         var sellers = await _db.Sellers
-            .OrderByDescending(s => s.IsAdmin)
+            .OrderBy(s => s.Role)
             .ThenBy(s => s.Name)
-            .Select(s => new { s.Id, s.Name, s.Email, s.CPF, s.IsAdmin, s.IsApproved, s.CreatedAt })
+            .Select(s => new { s.Id, s.Name, s.Email, s.CPF, s.Role, s.IsApproved, s.CreatedAt })
             .ToListAsync();
         return Ok(sellers);
+    }
+
+    [HttpPost("sellers")]
+    public async Task<IActionResult> CreateSeller([FromBody] CreateSellerDto dto)
+    {
+        if (!IsAdminSeller()) return Forbid();
+
+        if (await _db.Sellers.AnyAsync(s => s.Email == dto.Email || s.CPF == dto.CPF))
+            return Conflict(new { message = "Email ou CPF já cadastrado." });
+
+        var allowed = new[] { "Vendedor", "Gerente" };
+        if (!allowed.Contains(dto.Role))
+            return BadRequest(new { message = "Perfil inválido. Use 'Vendedor' ou 'Gerente'." });
+
+        var seller = new Seller
+        {
+            Name = dto.Name,
+            CPF = dto.CPF,
+            Email = dto.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            Role = dto.Role,
+            IsApproved = true
+        };
+
+        _db.Sellers.Add(seller);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { seller.Id, seller.Name, seller.Email, seller.Role });
+    }
+
+    [HttpPatch("sellers/{id}/revoke")]
+    public async Task<IActionResult> Revoke(int id)
+    {
+        if (!IsAdminSeller()) return Forbid();
+        var seller = await _db.Sellers.FindAsync(id);
+        if (seller == null) return NotFound();
+        if (seller.Role == "Admin") return BadRequest(new { message = "Não é possível revogar o administrador." });
+        seller.IsApproved = false;
+        await _db.SaveChangesAsync();
+        return Ok(new { seller.Id, seller.IsApproved });
     }
 
     [HttpPatch("sellers/{id}/approve")]
@@ -42,18 +87,6 @@ public class AdminController : ControllerBase
         var seller = await _db.Sellers.FindAsync(id);
         if (seller == null) return NotFound();
         seller.IsApproved = true;
-        await _db.SaveChangesAsync();
-        return Ok(new { seller.Id, seller.IsApproved });
-    }
-
-    [HttpPatch("sellers/{id}/revoke")]
-    public async Task<IActionResult> Revoke(int id)
-    {
-        if (!IsAdminSeller()) return Forbid();
-        var seller = await _db.Sellers.FindAsync(id);
-        if (seller == null) return NotFound();
-        if (seller.IsAdmin) return BadRequest(new { message = "Não é possível revogar o administrador." });
-        seller.IsApproved = false;
         await _db.SaveChangesAsync();
         return Ok(new { seller.Id, seller.IsApproved });
     }
