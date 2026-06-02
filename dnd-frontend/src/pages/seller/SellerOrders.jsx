@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
-import { ShoppingBag, TrendingUp, MessageSquare, CheckCircle, Filter } from 'lucide-react'
+import { ShoppingBag, TrendingUp, MessageSquare, CheckCircle, Filter, UserCheck } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -28,6 +28,11 @@ export default function SellerOrders() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [expanded, setExpanded] = useState(null)
+  const [sellers, setSellers] = useState([])
+
+  useEffect(() => {
+    api.get('/sellers').then(r => setSellers(r.data)).catch(() => {})
+  }, [])
 
   const load = () => {
     const params = new URLSearchParams()
@@ -53,6 +58,16 @@ export default function SellerOrders() {
       load()
     } catch {
       toast.error('Erro ao atualizar status')
+    }
+  }
+
+  const assignSeller = async (order, sellerId) => {
+    try {
+      await api.patch(`/orders/${order.id}/seller`, { attendedBySellerId: sellerId ? Number(sellerId) : null })
+      toast.success('Atendimento atualizado')
+      load()
+    } catch {
+      toast.error('Erro ao atribuir vendedor')
     }
   }
 
@@ -158,6 +173,18 @@ export default function SellerOrders() {
                     className="flex items-center gap-1.5 text-sm py-1.5 px-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition">
                     <MessageSquare size={14} /> WhatsApp
                   </button>
+
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <UserCheck size={14} className="text-gray-400" />
+                    <span className="text-xs text-gray-500">Atendido por:</span>
+                    <select
+                      value={order.attendedBySellerId ?? ''}
+                      onChange={e => assignSeller(order, e.target.value)}
+                      className="text-sm border border-gray-200 rounded-lg py-1 px-2 bg-white focus:outline-none focus:border-blue-400">
+                      <option value="">Não atribuído</option>
+                      {sellers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
                 </div>
 
                 {isExpanded && (

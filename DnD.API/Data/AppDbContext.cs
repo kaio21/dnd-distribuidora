@@ -32,6 +32,10 @@ public class AppDbContext : DbContext
             e.HasIndex(b => b.Email).IsUnique();
             e.Property(b => b.CPF).HasMaxLength(14);
             e.Property(b => b.CNPJ).HasMaxLength(18);
+            e.HasOne(b => b.ReferredBySeller)
+             .WithMany()
+             .HasForeignKey(b => b.ReferredBySellerId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Product>(e =>
@@ -51,6 +55,10 @@ public class AppDbContext : DbContext
              .WithMany(b => b.Orders)
              .HasForeignKey(o => o.BuyerId)
              .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(o => o.AttendedBySeller)
+             .WithMany()
+             .HasForeignKey(o => o.AttendedBySellerId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<OrderItem>(e =>

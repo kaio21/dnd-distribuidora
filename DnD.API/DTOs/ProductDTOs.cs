@@ -16,7 +16,8 @@ public record ProductUpdateDto(
     decimal CostPrice,
     decimal SalePrice,
     int Stock,
-    bool IsActive
+    bool IsActive,
+    bool RemoveImage = false
 );
 
 public record ProductResponseDto(

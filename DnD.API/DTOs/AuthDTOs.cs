@@ -20,7 +20,8 @@ public record BuyerRegisterDto(
     string Email,
     string Password,
     string Phone,
-    string Address
+    string Address,
+    int? ReferredBySellerId = null
 );
 
 public record BuyerLoginDto(

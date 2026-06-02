@@ -43,6 +43,15 @@ public class OrdersController : ControllerBase
         }
 
         var order = new Order { BuyerId = buyerId };
+
+        // afiliação opcional: vendedor que atendeu a venda
+        if (dto.AttendedBySellerId.HasValue)
+        {
+            var sellerExists = await _db.Sellers.AnyAsync(s => s.Id == dto.AttendedBySellerId.Value && s.IsApproved);
+            if (!sellerExists) return BadRequest(new { message = "Vendedor informado não encontrado." });
+            order.AttendedBySellerId = dto.AttendedBySellerId;
+        }
+
         var items = new List<OrderItem>();
 
         foreach (var itemDto in dto.Items)
@@ -85,6 +94,7 @@ public class OrdersController : ControllerBase
 
         var query = _db.Orders
             .Include(o => o.Buyer)
+            .Include(o => o.AttendedBySeller)
             .Include(o => o.Items).ThenInclude(i => i.Product)
             .AsQueryable();
 
@@ -140,10 +150,30 @@ public class OrdersController : ControllerBase
         return Ok(new { status = dto.Status });
     }
 
+    [HttpPatch("{id}/seller")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> AssignSeller(int id, [FromBody] AssignSellerDto dto)
+    {
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null) return NotFound();
+
+        if (dto.AttendedBySellerId.HasValue)
+        {
+            var sellerExists = await _db.Sellers.AnyAsync(s => s.Id == dto.AttendedBySellerId.Value && s.IsApproved);
+            if (!sellerExists) return BadRequest(new { message = "Vendedor informado não encontrado." });
+        }
+
+        order.AttendedBySellerId = dto.AttendedBySellerId;
+        await _db.SaveChangesAsync();
+
+        return Ok(await BuildOrderResponse(order.Id));
+    }
+
     private async Task<OrderResponseDto?> BuildOrderResponse(int id)
     {
         var order = await _db.Orders
             .Include(o => o.Buyer)
+            .Include(o => o.AttendedBySeller)
             .Include(o => o.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(o => o.Id == id);
 
@@ -157,6 +187,7 @@ public class OrdersController : ControllerBase
         order.Buyer?.Phone ?? "",
         order.TotalAmount, order.TotalProfit,
         order.Status.ToString(), order.CreatedAt,
+        order.AttendedBySellerId, order.AttendedBySeller?.Name,
         order.Items.Select(i => new OrderItemResponseDto(
             i.ProductId, i.Product?.Name ?? "", i.Quantity,
             i.UnitPrice, i.UnitCost, i.Profit)).ToList()

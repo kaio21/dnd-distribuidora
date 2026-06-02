@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -14,7 +14,13 @@ export default function BuyerRegister() {
   const [cpf, setCpf] = useState('')
   const [cnpj, setCnpj] = useState('')
   const [phone, setPhone] = useState('')
+  const [sellers, setSellers] = useState([])
+  const [referredBy, setReferredBy] = useState('')
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm()
+
+  useEffect(() => {
+    api.get('/sellers').then(r => setSellers(r.data)).catch(() => {})
+  }, [])
 
   const onSubmit = async (data) => {
     try {
@@ -23,6 +29,7 @@ export default function BuyerRegister() {
         cpf: stripMask(cpf),
         cnpj: stripMask(cnpj),
         phone: stripMask(phone),
+        referredBySellerId: referredBy ? Number(referredBy) : null,
       }
       const res = await api.post('/auth/buyer/register', payload)
       login(res.data)
@@ -94,6 +101,16 @@ export default function BuyerRegister() {
               placeholder="Rua, número, bairro, cidade/UF" className="input" />
             {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
           </div>
+
+          {sellers.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quem te indicou? <span className="text-gray-400 font-normal">(opcional)</span></label>
+              <select value={referredBy} onChange={e => setReferredBy(e.target.value)} className="input">
+                <option value="">Ninguém / Não sei</option>
+                {sellers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>

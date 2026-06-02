@@ -6,8 +6,11 @@ public record OrderItemRequestDto(
 );
 
 public record CreateOrderDto(
-    List<OrderItemRequestDto> Items
+    List<OrderItemRequestDto> Items,
+    int? AttendedBySellerId = null
 );
+
+public record AssignSellerDto(int? AttendedBySellerId);
 
 public record OrderItemResponseDto(
     int ProductId,
@@ -28,6 +31,8 @@ public record OrderResponseDto(
     decimal TotalProfit,
     string Status,
     DateTime CreatedAt,
+    int? AttendedBySellerId,
+    string? AttendedBySellerName,
     List<OrderItemResponseDto> Items
 );
 

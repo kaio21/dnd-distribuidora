@@ -17,6 +17,7 @@ export default function Products() {
   const [form, setForm] = useState(emptyForm)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [removeImage, setRemoveImage] = useState(false)
   const [saving, setSaving] = useState(false)
   const [openCategories, setOpenCategories] = useState({})
   const fileRef = useRef()
@@ -37,6 +38,7 @@ export default function Products() {
     setForm(emptyForm)
     setImageFile(null)
     setImagePreview(null)
+    setRemoveImage(false)
     setShowModal(true)
   }
 
@@ -45,6 +47,7 @@ export default function Products() {
     setForm({ name: p.name, description: p.description, category: p.category || '', costPrice: p.costPrice, salePrice: p.salePrice, stock: p.stock, isActive: p.isActive })
     setImagePreview(p.imageUrl || null)
     setImageFile(null)
+    setRemoveImage(false)
     setShowModal(true)
   }
 
@@ -53,6 +56,14 @@ export default function Products() {
     if (!file) return
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
+    setRemoveImage(false)
+  }
+
+  const handleRemoveImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setRemoveImage(true)
+    if (fileRef.current) fileRef.current.value = ''
   }
 
   const handleSubmit = async (e) => {
@@ -62,6 +73,7 @@ export default function Products() {
       const fd = new FormData()
       Object.entries(form).forEach(([k, v]) => fd.append(k, v))
       if (imageFile) fd.append('image', imageFile)
+      if (removeImage) fd.append('removeImage', 'true')
 
       if (editing) {
         await api.put(`/products/${editing.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
@@ -276,6 +288,19 @@ export default function Products() {
                     : <><Image size={32} className="text-gray-300 mx-auto mb-2" /><p className="text-sm text-gray-400">Clique para selecionar imagem</p></>}
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                <div className="flex items-center gap-3 mt-2">
+                  {imagePreview && (
+                    <button type="button" onClick={() => fileRef.current?.click()}
+                      className="text-xs text-blue-600 hover:underline font-medium">Trocar imagem</button>
+                  )}
+                  {imagePreview && (
+                    <button type="button" onClick={handleRemoveImage}
+                      className="text-xs text-red-500 hover:underline font-medium flex items-center gap-1">
+                      <Trash2 size={12} /> Remover imagem
+                    </button>
+                  )}
+                  {removeImage && <span className="text-xs text-gray-400">Imagem será removida ao salvar</span>}
+                </div>
               </div>
 
               {editing && (

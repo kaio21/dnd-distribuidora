@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
@@ -18,6 +18,12 @@ export default function PaymentPage() {
   const [ordering, setOrdering] = useState(false)
   const [card, setCard] = useState({ number: '', name: '', expiry: '', cvv: '' })
   const [installments, setInstallments] = useState('1')
+  const [sellers, setSellers] = useState([])
+  const [attendedBy, setAttendedBy] = useState('')
+
+  useEffect(() => {
+    api.get('/sellers').then(r => setSellers(r.data)).catch(() => {})
+  }, [])
 
   const cart = state?.cart || []
   const total = cart.reduce((a, i) => a + i.salePrice * i.qty, 0)
@@ -46,6 +52,7 @@ export default function PaymentPage() {
       await api.post('/orders', {
         items: cart.map(i => ({ productId: i.id, quantity: i.qty })),
         paymentMethod: method,
+        attendedBySellerId: attendedBy ? Number(attendedBy) : null,
       })
       toast.success('Pedido realizado com sucesso! 🎉')
       navigate('/buyer/orders')
@@ -88,6 +95,17 @@ export default function PaymentPage() {
             <span className="text-xl font-black text-blue-700">{fmt(total)}</span>
           </div>
         </div>
+
+        {/* Quem atendeu */}
+        {sellers.length > 0 && (
+          <div className="card mb-6">
+            <h2 className="font-bold text-gray-800 mb-3">Quem te atendeu? <span className="text-gray-400 font-normal text-sm">(opcional)</span></h2>
+            <select value={attendedBy} onChange={e => setAttendedBy(e.target.value)} className="input">
+              <option value="">Ninguém / Não sei</option>
+              {sellers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+        )}
 
         {/* Método de pagamento */}
         <div className="card">

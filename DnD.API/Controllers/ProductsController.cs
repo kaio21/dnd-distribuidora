@@ -91,7 +91,18 @@ public class ProductsController : ControllerBase
         product.IsActive = dto.IsActive;
 
         if (image != null)
+        {
+            // troca de imagem: remove a antiga do Storage e sobe a nova
+            var oldUrl = product.ImageUrl;
             product.ImageUrl = await _storage.UploadAsync(image);
+            await _storage.DeleteAsync(oldUrl);
+        }
+        else if (dto.RemoveImage)
+        {
+            // remoção da imagem: limpa o Storage e o campo
+            await _storage.DeleteAsync(product.ImageUrl);
+            product.ImageUrl = null;
+        }
 
         await _db.SaveChangesAsync();
         return Ok(new ProductResponseDto(product.Id, product.Name, product.Description,
@@ -120,6 +131,7 @@ public class ProductsController : ControllerBase
 
         _db.Products.Remove(product);
         await _db.SaveChangesAsync();
+        await _storage.DeleteAsync(product.ImageUrl);
         return NoContent();
     }
 

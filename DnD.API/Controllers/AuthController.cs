@@ -66,6 +66,14 @@ public class AuthController : ControllerBase
         if (await _db.Buyers.AnyAsync(b => b.Email == dto.Email || b.CPF == dto.CPF || b.CNPJ == dto.CNPJ))
             return Conflict(new { message = "Email, CPF ou CNPJ já cadastrado." });
 
+        // afiliação opcional: vendedor que indicou o comprador
+        int? referredBy = null;
+        if (dto.ReferredBySellerId.HasValue &&
+            await _db.Sellers.AnyAsync(s => s.Id == dto.ReferredBySellerId.Value && s.IsApproved))
+        {
+            referredBy = dto.ReferredBySellerId;
+        }
+
         var buyer = new Buyer
         {
             Name = dto.Name,
@@ -75,7 +83,8 @@ public class AuthController : ControllerBase
             Email = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Phone = dto.Phone,
-            Address = dto.Address
+            Address = dto.Address,
+            ReferredBySellerId = referredBy
         };
 
         _db.Buyers.Add(buyer);

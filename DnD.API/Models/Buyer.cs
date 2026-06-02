@@ -13,6 +13,10 @@ public class Buyer
     public string Address { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Vendedor que indicou este comprador (afiliação opcional)
+    public int? ReferredBySellerId { get; set; }
+    public Seller? ReferredBySeller { get; set; }
+
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<Message> Messages { get; set; } = new List<Message>();
 }
