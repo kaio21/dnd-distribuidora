@@ -24,9 +24,9 @@ public class CompradoresController : ControllerBase
 
         return Ok(new
         {
-            comprador.Id, comprador.Nome, comprador.NomeLoja,
-            comprador.CPF, comprador.CNPJ, comprador.Telefone,
-            comprador.Endereco, comprador.Email
+            id = comprador.Id, name = comprador.Nome, storeName = comprador.NomeLoja,
+            cpf = comprador.CPF, cnpj = comprador.CNPJ, phone = comprador.Telefone,
+            address = comprador.Endereco, email = comprador.Email
         });
     }
 }

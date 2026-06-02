@@ -1,41 +1,50 @@
+using System.Text.Json.Serialization;
+
 namespace DnD.API.Aplicacao.DTOs;
 
 public record ItemPedidoRequisicaoDto(
-    int ProdutoId,
-    int Quantidade
+    [property: JsonPropertyName("productId")] int ProdutoId,
+    [property: JsonPropertyName("quantity")]  int Quantidade
 );
 
 public record CriarPedidoDto(
-    List<ItemPedidoRequisicaoDto> Itens,
-    int? AtendidoPorVendedorId = null
+    [property: JsonPropertyName("items")]               List<ItemPedidoRequisicaoDto> Itens,
+    [property: JsonPropertyName("attendedBySellerId")]  int? AtendidoPorVendedorId = null
 );
 
-public record AtribuirVendedorDto(int? AtendidoPorVendedorId);
+public record AtribuirVendedorDto(
+    [property: JsonPropertyName("attendedBySellerId")] int? AtendidoPorVendedorId
+);
 
-public record AtualizarStatusPedidoDto(string Status);
+public record AtualizarStatusPedidoDto(
+    [property: JsonPropertyName("status")] string Status
+);
 
 public record ItemPedidoRespostaDto(
-    int ProdutoId,
-    string NomeProduto,
-    int Quantidade,
-    decimal PrecoUnitario,
-    decimal CustoUnitario,
-    decimal Lucro
+    [property: JsonPropertyName("productId")]   int ProdutoId,
+    [property: JsonPropertyName("productName")] string NomeProduto,
+    [property: JsonPropertyName("quantity")]    int Quantidade,
+    [property: JsonPropertyName("unitPrice")]   decimal PrecoUnitario,
+    [property: JsonPropertyName("unitCost")]    decimal CustoUnitario,
+    [property: JsonPropertyName("profit")]      decimal Lucro
 );
 
 public record RespostaPedidoDto(
-    int Id,
-    int CompradorId,
-    string NomeComprador,
-    string NomeLoja,
-    string TelefoneComprador,
-    decimal ValorTotal,
-    decimal LucroTotal,
-    string Status,
-    DateTime CriadoEm,
-    int? AtendidoPorVendedorId,
-    string? NomeVendedorAtendente,
-    List<ItemPedidoRespostaDto> Itens
+    [property: JsonPropertyName("id")]                   int Id,
+    [property: JsonPropertyName("buyerId")]              int CompradorId,
+    [property: JsonPropertyName("buyerName")]            string NomeComprador,
+    [property: JsonPropertyName("buyerStoreName")]       string NomeLoja,
+    [property: JsonPropertyName("buyerPhone")]           string TelefoneComprador,
+    [property: JsonPropertyName("totalAmount")]          decimal ValorTotal,
+    [property: JsonPropertyName("totalProfit")]          decimal LucroTotal,
+    [property: JsonPropertyName("status")]               string Status,
+    [property: JsonPropertyName("createdAt")]            DateTime CriadoEm,
+    [property: JsonPropertyName("attendedBySellerId")]   int? AtendidoPorVendedorId,
+    [property: JsonPropertyName("attendedBySellerName")] string? NomeVendedorAtendente,
+    [property: JsonPropertyName("items")]                List<ItemPedidoRespostaDto> Itens
 );
 
-public record ResultadoAtualizacaoStatusDto(string Status, string? UrlWhatsApp);
+public record ResultadoAtualizacaoStatusDto(
+    [property: JsonPropertyName("status")]      string Status,
+    [property: JsonPropertyName("whatsappUrl")] string? UrlWhatsApp
+);

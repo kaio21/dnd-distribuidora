@@ -17,7 +17,8 @@ public class AdminServico
         var vendedores = await _vendedorRepo.ListarTodosAsync();
         return vendedores.Select(v => new
         {
-            v.Id, v.Nome, v.Email, v.CPF, v.Perfil, v.Aprovado, v.CriadoEm
+            id = v.Id, name = v.Nome, email = v.Email,
+            cpf = v.CPF, role = v.Perfil, isApproved = v.Aprovado, createdAt = v.CriadoEm
         });
     }
 
@@ -38,7 +39,7 @@ public class AdminServico
         await _vendedorRepo.AdicionarAsync(vendedor);
         await _vendedorRepo.SalvarAlteracoesAsync();
 
-        return new { vendedor.Id, vendedor.Nome, vendedor.Email, vendedor.Perfil };
+        return new { id = vendedor.Id, name = vendedor.Nome, email = vendedor.Email, role = vendedor.Perfil };
     }
 
     public async Task<object?> RevogarAsync(int id)
@@ -49,7 +50,7 @@ public class AdminServico
         vendedor.Revogar(); // lança DomainException se for Admin
         await _vendedorRepo.SalvarAlteracoesAsync();
 
-        return new { vendedor.Id, vendedor.Aprovado };
+        return new { id = vendedor.Id, isApproved = vendedor.Aprovado };
     }
 
     public async Task<object?> AprovarAsync(int id)
@@ -60,6 +61,6 @@ public class AdminServico
         vendedor.Aprovar();
         await _vendedorRepo.SalvarAlteracoesAsync();
 
-        return new { vendedor.Id, vendedor.Aprovado };
+        return new { id = vendedor.Id, isApproved = vendedor.Aprovado };
     }
 }

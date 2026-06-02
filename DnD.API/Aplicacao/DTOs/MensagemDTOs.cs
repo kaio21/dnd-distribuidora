@@ -1,28 +1,30 @@
+using System.Text.Json.Serialization;
+
 namespace DnD.API.Aplicacao.DTOs;
 
 public record EnviarMensagemDto(
-    int DestinatarioId,
-    string TipoDestinatario,
-    string Conteudo
+    [property: JsonPropertyName("receiverId")]   int DestinatarioId,
+    [property: JsonPropertyName("receiverType")] string TipoDestinatario,
+    [property: JsonPropertyName("content")]      string Conteudo
 );
 
 public record RespostaMensagemDto(
-    int Id,
-    int RemetenteId,
-    string TipoRemetente,
-    string NomeRemetente,
-    int DestinatarioId,
-    string TipoDestinatario,
-    string Conteudo,
-    bool Lida,
-    DateTime CriadoEm
+    [property: JsonPropertyName("id")]           int Id,
+    [property: JsonPropertyName("senderId")]     int RemetenteId,
+    [property: JsonPropertyName("senderType")]   string TipoRemetente,
+    [property: JsonPropertyName("senderName")]   string NomeRemetente,
+    [property: JsonPropertyName("receiverId")]   int DestinatarioId,
+    [property: JsonPropertyName("receiverType")] string TipoDestinatario,
+    [property: JsonPropertyName("content")]      string Conteudo,
+    [property: JsonPropertyName("isRead")]       bool Lida,
+    [property: JsonPropertyName("createdAt")]    DateTime CriadoEm
 );
 
 public record ConversaDto(
-    int CompradorId,
-    string NomeComprador,
-    string NomeLoja,
-    int NaoLidas,
-    string UltimaMensagem,
-    DateTime UltimaMensagemEm
+    [property: JsonPropertyName("buyerId")]       int CompradorId,
+    [property: JsonPropertyName("buyerName")]     string NomeComprador,
+    [property: JsonPropertyName("buyerStoreName")] string NomeLoja,
+    [property: JsonPropertyName("unreadCount")]   int NaoLidas,
+    [property: JsonPropertyName("lastMessage")]   string UltimaMensagem,
+    [property: JsonPropertyName("lastMessageAt")] DateTime UltimaMensagemEm
 );

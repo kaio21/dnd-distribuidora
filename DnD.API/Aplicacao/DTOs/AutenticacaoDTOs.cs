@@ -1,41 +1,43 @@
+using System.Text.Json.Serialization;
+
 namespace DnD.API.Aplicacao.DTOs;
 
 public record CriarVendedorDto(
-    string Nome,
-    string? CPF,
-    string Email,
-    string Senha,
-    string Perfil
+    [property: JsonPropertyName("name")]     string Nome,
+    [property: JsonPropertyName("cpf")]      string? CPF,
+    [property: JsonPropertyName("email")]    string Email,
+    [property: JsonPropertyName("password")] string Senha,
+    [property: JsonPropertyName("role")]     string Perfil
 );
 
 public record LoginVendedorDto(
-    string Email,
-    string Senha
+    [property: JsonPropertyName("email")]    string Email,
+    [property: JsonPropertyName("password")] string Senha
 );
 
 public record RegistrarCompradorDto(
-    string Nome,
-    string NomeLoja,
-    string Email,
-    string Senha,
-    string Telefone,
-    string Endereco,
-    string? CPF = null,
-    string? CNPJ = null,
-    int? IndicadoPorVendedorId = null
+    [property: JsonPropertyName("name")]               string Nome,
+    [property: JsonPropertyName("storeName")]          string NomeLoja,
+    [property: JsonPropertyName("email")]              string Email,
+    [property: JsonPropertyName("password")]           string Senha,
+    [property: JsonPropertyName("phone")]              string Telefone,
+    [property: JsonPropertyName("address")]            string Endereco,
+    [property: JsonPropertyName("cpf")]                string? CPF = null,
+    [property: JsonPropertyName("cnpj")]               string? CNPJ = null,
+    [property: JsonPropertyName("referredBySellerId")] int? IndicadoPorVendedorId = null
 );
 
 public record LoginCompradorDto(
-    string Email,
-    string Senha
+    [property: JsonPropertyName("email")]    string Email,
+    [property: JsonPropertyName("password")] string Senha
 );
 
 public record RespostaAutenticacaoDto(
-    string Token,
-    string Role,
-    int UsuarioId,
-    string Nome,
-    string Email,
-    bool IsAdmin = false,
-    string? PerfilVendedor = null
+    [property: JsonPropertyName("token")]      string Token,
+    [property: JsonPropertyName("role")]       string Role,
+    [property: JsonPropertyName("userId")]     int UsuarioId,
+    [property: JsonPropertyName("name")]       string Nome,
+    [property: JsonPropertyName("email")]      string Email,
+    [property: JsonPropertyName("isAdmin")]    bool IsAdmin = false,
+    [property: JsonPropertyName("sellerRole")] string? PerfilVendedor = null
 );
