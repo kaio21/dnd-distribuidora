@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import { Users, XCircle, Shield, UserPlus, Eye, EyeOff } from 'lucide-react'
+import { maskCPF, stripMask } from '../../utils/masks'
 
 const roleLabel = { Admin: 'Admin', Gerente: 'Gerente', Vendedor: 'Vendedor' }
 const roleBadge = {
@@ -32,7 +33,7 @@ export default function AdminPanel() {
     e.preventDefault()
     setSaving(true)
     try {
-      await api.post('/admin/sellers', form)
+      await api.post('/admin/sellers', { ...form, cpf: stripMask(form.cpf) })
       toast.success(`${form.role} criado com sucesso!`)
       setForm(emptyForm)
       setShowForm(false)
@@ -164,9 +165,11 @@ export default function AdminPanel() {
                   required placeholder="Nome do vendedor" className="input" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-                <input value={form.cpf} onChange={e => setForm(f => ({...f, cpf: e.target.value}))}
-                  required placeholder="000.000.000-00" className="input" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CPF <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <input value={form.cpf} onChange={e => setForm(f => ({...f, cpf: maskCPF(e.target.value)}))}
+                  placeholder="000.000.000-00" className="input" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>

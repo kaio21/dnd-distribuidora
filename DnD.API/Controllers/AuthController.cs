@@ -37,7 +37,13 @@ public class AuthController : ControllerBase
     [HttpPost("buyer/register")]
     public async Task<IActionResult> BuyerRegister([FromBody] BuyerRegisterDto dto)
     {
-        if (await _db.Buyers.AnyAsync(b => b.Email == dto.Email || b.CPF == dto.CPF || b.CNPJ == dto.CNPJ))
+        var cpf  = string.IsNullOrWhiteSpace(dto.CPF)  ? null : dto.CPF;
+        var cnpj = string.IsNullOrWhiteSpace(dto.CNPJ) ? null : dto.CNPJ;
+
+        if (await _db.Buyers.AnyAsync(b =>
+            b.Email == dto.Email ||
+            (cpf  != null && b.CPF  == cpf)  ||
+            (cnpj != null && b.CNPJ == cnpj)))
             return Conflict(new { message = "Email, CPF ou CNPJ já cadastrado." });
 
         // afiliação opcional: vendedor que indicou o comprador
@@ -52,8 +58,8 @@ public class AuthController : ControllerBase
         {
             Name = dto.Name,
             StoreName = dto.StoreName,
-            CPF = dto.CPF,
-            CNPJ = dto.CNPJ,
+            CPF = cpf,
+            CNPJ = cnpj,
             Email = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Phone = dto.Phone,

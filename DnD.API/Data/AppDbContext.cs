@@ -20,18 +20,18 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Seller>(e =>
         {
-            e.HasIndex(s => s.CPF).IsUnique();
+            e.HasIndex(s => s.CPF).IsUnique().HasFilter("\"CPF\" IS NOT NULL AND \"CPF\" != ''");
             e.HasIndex(s => s.Email).IsUnique();
-            e.Property(s => s.CPF).HasMaxLength(14);
+            e.Property(s => s.CPF).HasMaxLength(14).IsRequired(false);
         });
 
         modelBuilder.Entity<Buyer>(e =>
         {
-            e.HasIndex(b => b.CPF).IsUnique();
-            e.HasIndex(b => b.CNPJ).IsUnique();
+            e.HasIndex(b => b.CPF).IsUnique().HasFilter("\"CPF\" IS NOT NULL AND \"CPF\" != ''");
+            e.HasIndex(b => b.CNPJ).IsUnique().HasFilter("\"CNPJ\" IS NOT NULL AND \"CNPJ\" != ''");
             e.HasIndex(b => b.Email).IsUnique();
-            e.Property(b => b.CPF).HasMaxLength(14);
-            e.Property(b => b.CNPJ).HasMaxLength(18);
+            e.Property(b => b.CPF).HasMaxLength(14).IsRequired(false);
+            e.Property(b => b.CNPJ).HasMaxLength(18).IsRequired(false);
             e.HasOne(b => b.ReferredBySeller)
              .WithMany()
              .HasForeignKey(b => b.ReferredBySellerId)

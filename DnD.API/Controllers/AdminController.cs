@@ -45,7 +45,10 @@ public class AdminController : ControllerBase
     {
         if (!IsAdminSeller()) return Forbid();
 
-        if (await _db.Sellers.AnyAsync(s => s.Email == dto.Email || s.CPF == dto.CPF))
+        var cpf = string.IsNullOrWhiteSpace(dto.CPF) ? null : dto.CPF;
+        if (await _db.Sellers.AnyAsync(s =>
+            s.Email == dto.Email ||
+            (cpf != null && s.CPF == cpf)))
             return Conflict(new { message = "Email ou CPF já cadastrado." });
 
         var allowed = new[] { "Vendedor", "Gerente" };
@@ -55,7 +58,7 @@ public class AdminController : ControllerBase
         var seller = new Seller
         {
             Name = dto.Name,
-            CPF = dto.CPF,
+            CPF = cpf,
             Email = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Role = dto.Role,

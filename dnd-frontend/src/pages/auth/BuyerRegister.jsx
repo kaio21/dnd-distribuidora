@@ -5,14 +5,13 @@ import toast from 'react-hot-toast'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { ShoppingCart, Eye, EyeOff } from 'lucide-react'
-import { maskCPF, maskCNPJ, maskPhone, stripMask } from '../../utils/masks'
+import { maskDocument, maskPhone, stripMask } from '../../utils/masks'
 
 export default function BuyerRegister() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
-  const [cpf, setCpf] = useState('')
-  const [cnpj, setCnpj] = useState('')
+  const [document, setDocument] = useState('')
   const [phone, setPhone] = useState('')
   const [sellers, setSellers] = useState([])
   const [referredBy, setReferredBy] = useState('')
@@ -24,10 +23,11 @@ export default function BuyerRegister() {
 
   const onSubmit = async (data) => {
     try {
+      const digits = stripMask(document)
       const payload = {
         ...data,
-        cpf: stripMask(cpf),
-        cnpj: stripMask(cnpj),
+        cpf:  digits.length === 11 ? digits : '',
+        cnpj: digits.length === 14 ? digits : '',
         phone: stripMask(phone),
         referredBySellerId: referredBy ? Number(referredBy) : null,
       }
@@ -69,17 +69,16 @@ export default function BuyerRegister() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-              <input value={cpf} onChange={e => setCpf(maskCPF(e.target.value))}
-                placeholder="000.000.000-00" className="input" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
-              <input value={cnpj} onChange={e => setCnpj(maskCNPJ(e.target.value))}
-                placeholder="00.000.000/0001-00" className="input" required />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              CPF / CNPJ <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <input
+              value={document}
+              onChange={e => setDocument(maskDocument(e.target.value))}
+              placeholder="000.000.000-00 ou 00.000.000/0001-00"
+              className="input"
+            />
           </div>
 
           <div>

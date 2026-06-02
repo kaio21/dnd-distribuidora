@@ -2,7 +2,7 @@ namespace DnD.API.DTOs;
 
 public record CreateSellerDto(
     string Name,
-    string CPF,
+    string? CPF,
     string Email,
     string Password,
     string Role // "Vendedor" ou "Gerente"
@@ -16,12 +16,12 @@ public record SellerLoginDto(
 public record BuyerRegisterDto(
     string Name,
     string StoreName,
-    string CPF,
-    string CNPJ,
     string Email,
     string Password,
     string Phone,
     string Address,
+    string? CPF = null,
+    string? CNPJ = null,
     int? ReferredBySellerId = null
 );
 
