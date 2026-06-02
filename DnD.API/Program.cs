@@ -1,33 +1,58 @@
-using DnD.API.Data;
+using DnD.API.API.Filtros;
+using DnD.API.Aplicacao.Servicos;
+using DnD.API.Dominio.Repositorios;
 using DnD.API.Hubs;
-using DnD.API.Services;
+using DnD.API.Infraestrutura.Dados;
+using DnD.API.Infraestrutura.Repositorios;
+using DnD.API.Infraestrutura.Servicos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Banco de dados ────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<SupabaseStorageService>();
+// ── Repositórios ──────────────────────────────────────────────────────────────
+builder.Services.AddScoped<IVendedorRepositorio,       VendedorRepositorio>();
+builder.Services.AddScoped<ICompradorRepositorio,      CompradorRepositorio>();
+builder.Services.AddScoped<IProdutoRepositorio,        ProdutoRepositorio>();
+builder.Services.AddScoped<IPedidoRepositorio,         PedidoRepositorio>();
+builder.Services.AddScoped<IMensagemRepositorio,       MensagemRepositorio>();
+builder.Services.AddScoped<ICategoriaRepositorio,      CategoriaRepositorio>();
+builder.Services.AddScoped<IConfiguracaoLojaRepositorio, ConfiguracaoLojaRepositorio>();
+
+// ── Serviços de infraestrutura ────────────────────────────────────────────────
+builder.Services.AddScoped<IJwtServico,           JwtServico>();
+builder.Services.AddScoped<IArmazenamentoServico, ArmazenamentoServico>();
 builder.Services.AddHttpClient();
 
+// ── Serviços de aplicação ─────────────────────────────────────────────────────
+builder.Services.AddScoped<AutenticacaoServico>();
+builder.Services.AddScoped<ProdutoServico>();
+builder.Services.AddScoped<PedidoServico>();
+builder.Services.AddScoped<AdminServico>();
+builder.Services.AddScoped<DashboardServico>();
+builder.Services.AddScoped<MensagemServico>();
+builder.Services.AddScoped<ConfiguracaoLojaServico>();
+builder.Services.AddScoped<CategoriaServico>();
+
+// ── Autenticação JWT ──────────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["JwtSettings:SecretKey"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
+            ValidateIssuer           = true,
+            ValidateAudience         = true,
+            ValidateLifetime         = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            ValidIssuer      = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience    = builder.Configuration["JwtSettings:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
 
@@ -46,22 +71,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    options.Filters.Add<FiltroExcecoesDominio>());
 
 var allowedOrigins = builder.Configuration["AllowedOrigins"]?.Split(',')
     ?? new[] { "http://localhost:5173" };
 
 builder.Services.AddCors(options =>
-{
     options.AddDefaultPolicy(policy =>
-    {
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
+              .AllowCredentials()));
 
+// ── Pipeline ──────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -71,13 +94,13 @@ using (var scope = app.Services.CreateScope())
         var db  = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         db.Database.EnsureCreated();
-        await DnD.API.Data.SeedData.SeedAsync(db);
+        await DadosIniciais.PopularAsync(db);
         log.LogInformation("Banco de dados pronto.");
     }
     catch (Exception ex)
     {
         var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        log.LogError("DB ERROR: {Message} | Inner: {Inner} | Type: {Type}",
+        log.LogError("Erro no banco: {Mensagem} | Inner: {Inner} | Tipo: {Tipo}",
             ex.Message, ex.InnerException?.Message, ex.GetType().Name);
     }
 }
@@ -86,7 +109,6 @@ app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 
