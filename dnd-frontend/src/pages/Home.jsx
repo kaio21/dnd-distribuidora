@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/axios'
 import { ShoppingCart, Package, Image, AlertCircle, ChevronDown, ChevronRight, Clock, Search, LogIn } from 'lucide-react'
+import BarraCep from '../components/BarraCep'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
@@ -37,24 +38,34 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#eef2f8' }}>
       {/* Header */}
-      <header className="bg-blue-900 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 rounded-xl w-9 h-9 flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-lg">D</span>
+      <header className="bg-blue-900 sticky top-0 z-40 shadow-lg">
+        {/* Linha principal */}
+        <div className="px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="bg-blue-600 rounded-xl w-9 h-9 flex items-center justify-center shrink-0">
+              <span className="text-white font-black text-lg">D</span>
+            </div>
+            <span className="text-white font-bold text-lg hidden sm:block">D&D Distribuidora</span>
+            <span className="text-white font-bold text-base sm:hidden">D&D</span>
           </div>
-          <span className="text-white font-bold text-lg">D&D Distribuidora</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link to="/buyer/login"
-            className="flex items-center gap-1.5 bg-white text-blue-700 font-semibold px-3 py-2 rounded-lg text-sm hover:bg-blue-50 transition">
-            <LogIn size={15} />
-            <span className="hidden sm:inline">Entrar / Comprar</span>
-            <span className="sm:hidden">Entrar</span>
-          </Link>
-          <Link to="/seller/login"
-            className="hidden sm:flex items-center gap-1.5 border border-white/30 text-white font-semibold px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition">
-            Área do Vendedor
-          </Link>
+
+          {/* Barra de CEP — centro */}
+          <div className="flex-1 flex justify-center">
+            <BarraCep />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Link to="/buyer/login"
+              className="flex items-center gap-1.5 bg-white text-blue-700 font-semibold px-3 py-2 rounded-lg text-sm hover:bg-blue-50 transition">
+              <LogIn size={15} />
+              <span className="hidden sm:inline">Entrar / Comprar</span>
+              <span className="sm:hidden">Entrar</span>
+            </Link>
+            <Link to="/seller/login"
+              className="hidden sm:flex items-center gap-1.5 border border-white/30 text-white font-semibold px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition">
+              Área do Vendedor
+            </Link>
+          </div>
         </div>
       </header>
 

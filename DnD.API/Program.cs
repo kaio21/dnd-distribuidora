@@ -14,15 +14,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Banco de dados ────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsql =>
+        {
+            npgsql.CommandTimeout(30);
+            npgsql.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorCodesToAdd: null);
+        }));
+
+// ── Inicialização do banco em background (não bloqueia o startup) ─────────────
+builder.Services.AddHostedService<InicializadorBancoDados>();
 
 // ── Repositórios ──────────────────────────────────────────────────────────────
-builder.Services.AddScoped<IVendedorRepositorio,       VendedorRepositorio>();
-builder.Services.AddScoped<ICompradorRepositorio,      CompradorRepositorio>();
-builder.Services.AddScoped<IProdutoRepositorio,        ProdutoRepositorio>();
-builder.Services.AddScoped<IPedidoRepositorio,         PedidoRepositorio>();
-builder.Services.AddScoped<IMensagemRepositorio,       MensagemRepositorio>();
-builder.Services.AddScoped<ICategoriaRepositorio,      CategoriaRepositorio>();
+builder.Services.AddScoped<IVendedorRepositorio,         VendedorRepositorio>();
+builder.Services.AddScoped<ICompradorRepositorio,        CompradorRepositorio>();
+builder.Services.AddScoped<IProdutoRepositorio,          ProdutoRepositorio>();
+builder.Services.AddScoped<IPedidoRepositorio,           PedidoRepositorio>();
+builder.Services.AddScoped<IMensagemRepositorio,         MensagemRepositorio>();
+builder.Services.AddScoped<ICategoriaRepositorio,        CategoriaRepositorio>();
 builder.Services.AddScoped<IConfiguracaoLojaRepositorio, ConfiguracaoLojaRepositorio>();
 
 // ── Serviços de infraestrutura ────────────────────────────────────────────────
@@ -86,24 +98,6 @@ builder.Services.AddCors(options =>
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        var db  = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        db.Database.EnsureCreated();
-        await DadosIniciais.PopularAsync(db);
-        log.LogInformation("Banco de dados pronto.");
-    }
-    catch (Exception ex)
-    {
-        var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        log.LogError("Erro no banco: {Mensagem} | Inner: {Inner} | Tipo: {Tipo}",
-            ex.Message, ex.InnerException?.Message, ex.GetType().Name);
-    }
-}
 
 app.UseStaticFiles();
 app.UseCors();
