@@ -81,6 +81,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddHealthChecks();
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
 builder.Services.AddControllers(options =>
@@ -103,6 +104,7 @@ app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHealthChecks("/health");
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 
