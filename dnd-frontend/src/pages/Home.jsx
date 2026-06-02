@@ -10,10 +10,13 @@ export default function Home() {
   const [products, setProducts] = useState([])
   const [storeSettings, setStoreSettings] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(false)
   const [search, setSearch] = useState('')
   const [openCategories, setOpenCategories] = useState({})
 
-  useEffect(() => {
+  const carregarDados = () => {
+    setLoading(true)
+    setErro(false)
     Promise.all([
       api.get('/products?activeOnly=true'),
       api.get('/settings')
@@ -22,8 +25,10 @@ export default function Home() {
       setStoreSettings(settingsRes.data)
       const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
       setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
-    }).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+    }).catch(() => setErro(true)).finally(() => setLoading(false))
+  }
+
+  useEffect(() => { carregarDados() }, [])
 
   const storeOpen = storeSettings?.isOpen ?? true
 
@@ -98,8 +103,25 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-24">
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-400 text-sm">Carregando catálogo...</p>
+          </div>
+        ) : erro ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-8 py-8 max-w-md w-full">
+              <AlertCircle size={40} className="text-yellow-500 mx-auto mb-3" />
+              <h3 className="font-bold text-gray-800 mb-1">Serviço temporariamente indisponível</h3>
+              <p className="text-gray-500 text-sm mb-4">
+                O servidor está acordando. Isso pode levar alguns segundos. Tente novamente.
+              </p>
+              <button
+                onClick={carregarDados}
+                className="btn-primary w-full flex items-center justify-center gap-2 py-2.5">
+                <Search size={15} />
+                Tentar novamente
+              </button>
+            </div>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
