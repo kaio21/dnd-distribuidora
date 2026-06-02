@@ -51,9 +51,9 @@ public class AdminController : ControllerBase
             (cpf != null && s.CPF == cpf)))
             return Conflict(new { message = "Email ou CPF já cadastrado." });
 
-        var allowed = new[] { "Vendedor", "Gerente" };
+        var allowed = new[] { "Vendedor", "Gerente", "Admin" };
         if (!allowed.Contains(dto.Role))
-            return BadRequest(new { message = "Perfil inválido. Use 'Vendedor' ou 'Gerente'." });
+            return BadRequest(new { message = "Perfil inválido. Use 'Vendedor', 'Gerente' ou 'Admin'." });
 
         var seller = new Seller
         {

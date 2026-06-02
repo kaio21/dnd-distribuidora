@@ -157,6 +157,7 @@ export default function AdminPanel() {
                 <select value={form.role} onChange={e => setForm(f => ({...f, role: e.target.value}))} className="input">
                   <option value="Vendedor">Vendedor</option>
                   <option value="Gerente">Gerente</option>
+                  <option value="Admin">Admin</option>
                 </select>
               </div>
               <div>
