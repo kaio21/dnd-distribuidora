@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import { Plus, Edit, Trash2, Pause, Play, Package, Search, Image, ChevronDown, ChevronRight } from 'lucide-react'
+import ConfirmModal from '../../components/ConfirmModal'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
@@ -20,6 +21,7 @@ export default function Products() {
   const [removeImage, setRemoveImage] = useState(false)
   const [saving, setSaving] = useState(false)
   const [openCategories, setOpenCategories] = useState({})
+  const [confirmDelete, setConfirmDelete] = useState(null) // produto a excluir
   const fileRef = useRef()
 
   const load = () => {
@@ -101,14 +103,15 @@ export default function Products() {
     }
   }
 
-  const handleDelete = async (p) => {
-    if (!confirm(`Excluir "${p.name}"?`)) return
+  const handleDelete = async () => {
+    const p = confirmDelete
+    setConfirmDelete(null)
     try {
       await api.delete(`/products/${p.id}`)
       toast.success('Produto excluído')
       load()
-    } catch {
-      toast.error('Erro ao excluir produto')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erro ao excluir produto')
     }
   }
 
@@ -209,7 +212,7 @@ export default function Products() {
                           <button onClick={() => handleToggle(p)} className={`flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-lg font-semibold transition ${p.isActive ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
                             {p.isActive ? <><Pause size={12} /> Pausar</> : <><Play size={12} /> Ativar</>}
                           </button>
-                          <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition">
+                          <button onClick={() => setConfirmDelete(p)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -222,6 +225,15 @@ export default function Products() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title={`Excluir "${confirmDelete?.name}"?`}
+        description="Esta ação não pode ser desfeita. Produtos com pedidos vinculados não podem ser excluídos — desative-os para ocultá-los da loja."
+        confirmLabel="Excluir produto"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
