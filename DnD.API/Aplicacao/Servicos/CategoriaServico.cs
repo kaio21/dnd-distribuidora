@@ -14,7 +14,7 @@ public class CategoriaServico
     public async Task<IEnumerable<object>> ListarAsync()
     {
         var categorias = await _categoriaRepo.ListarAsync();
-        return categorias.Select(c => new { c.Id, c.Nome });
+        return categorias.Select(c => new { c.Id, Name = c.Nome });
     }
 
     public async Task<object> CriarAsync(string nome)
@@ -30,7 +30,7 @@ public class CategoriaServico
         await _categoriaRepo.AdicionarAsync(categoria);
         await _categoriaRepo.SalvarAlteracoesAsync();
 
-        return new { categoria.Id, categoria.Nome };
+        return new { categoria.Id, Name = categoria.Nome };
     }
 
     public async Task<bool> RemoverAsync(int id)

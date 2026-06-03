@@ -29,8 +29,8 @@ public class ProdutoServico
 
     public async Task<RespostaProdutoDto> CriarAsync(CriarProdutoDto dto, IFormFile? imagem)
     {
-        var produto = Produto.Criar(dto.Nome, dto.Descricao, dto.NomeCategoria,
-            dto.PrecoCusto, dto.PrecoVenda, dto.Estoque);
+        var produto = Produto.Criar(dto.Name, dto.Description, dto.Category,
+            dto.CostPrice, dto.SalePrice, dto.Stock);
 
         if (imagem != null)
             produto.DefinirImagem(await _armazenamento.EnviarAsync(imagem));
@@ -46,8 +46,8 @@ public class ProdutoServico
         var produto = await _produtoRepo.ObterPorIdAsync(id);
         if (produto is null) return null;
 
-        produto.Atualizar(dto.Nome, dto.Descricao, dto.NomeCategoria,
-            dto.PrecoCusto, dto.PrecoVenda, dto.Estoque, dto.Ativo);
+        produto.Atualizar(dto.Name, dto.Description, dto.Category,
+            dto.CostPrice, dto.SalePrice, dto.Stock, dto.IsActive);
 
         if (imagem != null)
         {
@@ -55,7 +55,7 @@ public class ProdutoServico
             produto.DefinirImagem(await _armazenamento.EnviarAsync(imagem));
             await _armazenamento.RemoverAsync(urlAntiga);
         }
-        else if (dto.RemoverImagem)
+        else if (dto.RemoveImage)
         {
             await _armazenamento.RemoverAsync(produto.UrlImagem);
             produto.RemoverImagem();
