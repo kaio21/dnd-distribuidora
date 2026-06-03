@@ -60,15 +60,11 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Link to="/buyer/login"
+            <Link to="/login"
               className="flex items-center gap-1.5 bg-white text-blue-700 font-semibold px-3 py-2 rounded-lg text-sm hover:bg-blue-50 transition">
               <LogIn size={15} />
-              <span className="hidden sm:inline">Entrar / Comprar</span>
+              <span className="hidden sm:inline">Entrar</span>
               <span className="sm:hidden">Entrar</span>
-            </Link>
-            <Link to="/seller/login"
-              className="hidden sm:flex items-center gap-1.5 border border-white/30 text-white font-semibold px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition">
-              Área do Vendedor
             </Link>
           </div>
         </div>
@@ -172,7 +168,7 @@ export default function Home() {
                             </div>
 
                             <Link
-                              to="/buyer/login"
+                              to="/login"
                               className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-2">
                               <ShoppingCart size={14} />
                               {p.stock === 0 ? 'Sem estoque' : 'Entrar para comprar'}

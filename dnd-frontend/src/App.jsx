@@ -2,8 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 import Home from './pages/Home'
-import SellerLogin from './pages/auth/SellerLogin'
-import BuyerLogin from './pages/auth/BuyerLogin'
+import Login from './pages/auth/Login'
 import BuyerRegister from './pages/auth/BuyerRegister'
 
 import SellerLayout from './components/SellerLayout'
@@ -23,7 +22,7 @@ import BuyerMessages from './pages/buyer/BuyerMessages'
 function ProtectedSeller({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
-  if (!user) return <Navigate to="/seller/login" replace />
+  if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'Seller') return <Navigate to="/buyer/shop" replace />
   return children
 }
@@ -31,7 +30,7 @@ function ProtectedSeller({ children }) {
 function ProtectedBuyer({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
-  if (!user) return <Navigate to="/buyer/login" replace />
+  if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'Buyer') return <Navigate to="/seller/dashboard" replace />
   return children
 }
@@ -42,8 +41,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
 
-        <Route path="/seller/login" element={<SellerLogin />} />
-        <Route path="/buyer/login" element={<BuyerLogin />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/seller/login" element={<Navigate to="/login" replace />} />
+        <Route path="/buyer/login" element={<Navigate to="/login" replace />} />
         <Route path="/buyer/register" element={<BuyerRegister />} />
 
         <Route path="/seller" element={<ProtectedSeller><SellerLayout /></ProtectedSeller>}>
