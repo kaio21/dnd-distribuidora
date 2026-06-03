@@ -1,5 +1,4 @@
 using DnD.API.Aplicacao.DTOs;
-using DnD.API.Dominio;
 using DnD.API.Dominio.Entidades;
 using DnD.API.Dominio.Repositorios;
 
@@ -81,9 +80,7 @@ public class ProdutoServico
         var produto = await _produtoRepo.ObterPorIdAsync(id);
         if (produto is null) return false;
 
-        if (await _produtoRepo.PossuiPedidosAsync(id))
-            throw new DomainException($"O produto \"{produto.Nome}\" possui pedidos vinculados e não pode ser excluído. Desative-o para ocultá-lo da loja.");
-
+        await _produtoRepo.RemoverItensPedidoAsync(id);
         await _produtoRepo.RemoverAsync(produto);
         await _produtoRepo.SalvarAlteracoesAsync();
         await _armazenamento.RemoverAsync(produto.UrlImagem);

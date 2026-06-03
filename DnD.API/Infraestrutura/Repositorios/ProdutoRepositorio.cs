@@ -27,8 +27,12 @@ public class ProdutoRepositorio : IProdutoRepositorio
     public Task<bool> ExisteProdutosNaCategoriaAsync(string nomeCategoria) =>
         _db.Produtos.AnyAsync(p => p.NomeCategoria == nomeCategoria);
 
-    public Task<bool> PossuiPedidosAsync(int produtoId) =>
-        _db.ItensPedido.AnyAsync(i => i.ProdutoId == produtoId);
+    public async Task RemoverItensPedidoAsync(int produtoId)
+    {
+        var itens = await _db.ItensPedido.Where(i => i.ProdutoId == produtoId).ToListAsync();
+        if (itens.Count > 0)
+            _db.ItensPedido.RemoveRange(itens);
+    }
 
     public async Task AdicionarAsync(Produto produto) =>
         await _db.Produtos.AddAsync(produto);
