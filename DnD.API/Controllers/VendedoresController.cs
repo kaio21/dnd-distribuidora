@@ -18,6 +18,6 @@ public class VendedoresController : ControllerBase
     public async Task<IActionResult> ListarAtivos()
     {
         var vendedores = await _vendedorRepo.ListarAprovadosAsync();
-        return Ok(vendedores.Select(v => new { v.Id, v.Nome }));
+        return Ok(vendedores.Select(v => new { v.Id, Name = v.Nome }));
     }
 }

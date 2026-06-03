@@ -24,7 +24,7 @@ public class CategoriasController : ControllerBase
         if (User.FindFirstValue(ClaimTypes.Role) != "Seller")
             return Forbid();
 
-        return Ok(await _servico.CriarAsync(req.Nome));
+        return Ok(await _servico.CriarAsync(req.Name));
     }
 
     [HttpDelete("{id}")]
@@ -39,4 +39,4 @@ public class CategoriasController : ControllerBase
     }
 }
 
-public record CriarCategoriaRequisicao(string Nome);
+public record CriarCategoriaRequisicao(string Name);
