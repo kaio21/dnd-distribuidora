@@ -7,9 +7,13 @@ namespace DnD.API.Aplicacao.Servicos;
 public class CategoriaServico
 {
     private readonly ICategoriaRepositorio _categoriaRepo;
+    private readonly IProdutoRepositorio _produtoRepo;
 
-    public CategoriaServico(ICategoriaRepositorio categoriaRepo) =>
+    public CategoriaServico(ICategoriaRepositorio categoriaRepo, IProdutoRepositorio produtoRepo)
+    {
         _categoriaRepo = categoriaRepo;
+        _produtoRepo = produtoRepo;
+    }
 
     public async Task<IEnumerable<object>> ListarAsync()
     {
@@ -37,6 +41,9 @@ public class CategoriaServico
     {
         var categoria = await _categoriaRepo.ObterPorIdAsync(id);
         if (categoria is null) return false;
+
+        if (await _produtoRepo.ExisteProdutosNaCategoriaAsync(categoria.Nome))
+            throw new DomainException($"Não é possível excluir a categoria \"{categoria.Nome}\" pois existem produtos vinculados a ela. Remova ou remaneie os produtos primeiro.");
 
         await _categoriaRepo.RemoverAsync(categoria);
         await _categoriaRepo.SalvarAlteracoesAsync();

@@ -24,6 +24,9 @@ public class ProdutoRepositorio : IProdutoRepositorio
     public Task<Produto?> ObterPorIdAsync(int id) =>
         _db.Produtos.FindAsync(id).AsTask();
 
+    public Task<bool> ExisteProdutosNaCategoriaAsync(string nomeCategoria) =>
+        _db.Produtos.AnyAsync(p => p.NomeCategoria == nomeCategoria);
+
     public async Task AdicionarAsync(Produto produto) =>
         await _db.Produtos.AddAsync(produto);
 

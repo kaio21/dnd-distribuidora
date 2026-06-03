@@ -6,6 +6,7 @@ public interface IProdutoRepositorio
 {
     Task<IEnumerable<Produto>> ListarAsync(bool? apenasAtivos = null);
     Task<Produto?> ObterPorIdAsync(int id);
+    Task<bool> ExisteProdutosNaCategoriaAsync(string nomeCategoria);
     Task AdicionarAsync(Produto produto);
     Task RemoverAsync(Produto produto);
     Task SalvarAlteracoesAsync();
