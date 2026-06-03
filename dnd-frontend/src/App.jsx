@@ -13,11 +13,13 @@ import SellerOrders from './pages/seller/SellerOrders'
 import SellerMessages from './pages/seller/SellerMessages'
 import SellerSettings from './pages/seller/Settings'
 import AdminPanel from './pages/seller/AdminPanel'
+import SellerProfile from './pages/seller/SellerProfile'
 
 import BuyerLayout from './components/BuyerLayout'
 import Shop from './pages/buyer/Shop'
 import BuyerOrders from './pages/buyer/BuyerOrders'
 import BuyerMessages from './pages/buyer/BuyerMessages'
+import BuyerProfile from './pages/buyer/BuyerProfile'
 
 function ProtectedSeller({ children }) {
   const { user, loading } = useAuth()
@@ -55,6 +57,7 @@ export default function App() {
           <Route path="messages" element={<SellerMessages />} />
           <Route path="settings" element={<SellerSettings />} />
           <Route path="admin" element={<AdminPanel />} />
+          <Route path="profile" element={<SellerProfile />} />
         </Route>
 
         <Route path="/buyer" element={<ProtectedBuyer><BuyerLayout /></ProtectedBuyer>}>
@@ -62,6 +65,7 @@ export default function App() {
           <Route path="shop" element={<Shop />} />
           <Route path="orders" element={<BuyerOrders />} />
           <Route path="messages" element={<BuyerMessages />} />
+          <Route path="profile" element={<BuyerProfile />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

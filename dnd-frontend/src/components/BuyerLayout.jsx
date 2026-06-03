@@ -1,11 +1,12 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ShoppingCart, Package, MessageSquare, LogOut } from 'lucide-react'
+import { ShoppingCart, Package, MessageSquare, LogOut, UserCircle } from 'lucide-react'
 
 const navItems = [
   { to: '/buyer/shop',     icon: ShoppingCart,  label: 'Loja' },
   { to: '/buyer/orders',   icon: Package,       label: 'Pedidos' },
   { to: '/buyer/messages', icon: MessageSquare, label: 'Mensagens' },
+  { to: '/buyer/profile',  icon: UserCircle,    label: 'Perfil' },
 ]
 
 export default function BuyerLayout() {

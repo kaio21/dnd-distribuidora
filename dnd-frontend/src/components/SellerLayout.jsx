@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { LayoutDashboard, Package, ShoppingBag, MessageSquare, LogOut, Store, Settings, Tag, Shield } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingBag, MessageSquare, LogOut, Store, Settings, Tag, Shield, UserCircle } from 'lucide-react'
 
 export default function SellerLayout() {
   const { user, logout } = useAuth()
@@ -13,6 +13,7 @@ export default function SellerLayout() {
     { to: '/seller/orders',    icon: ShoppingBag,      label: 'Pedidos' },
     { to: '/seller/messages',  icon: MessageSquare,    label: 'Mensagens' },
     { to: '/seller/settings',  icon: Settings,         label: 'Configurações' },
+    { to: '/seller/profile',   icon: UserCircle,       label: 'Meu Perfil' },
     ...(user?.sellerRole === 'Admin' ? [{ to: '/seller/admin', icon: Shield, label: 'Admin' }] : []),
   ]
 

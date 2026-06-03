@@ -60,5 +60,15 @@ public class Comprador
             CriadoEm = criadoEm ?? DateTime.UtcNow
         };
 
+    public void Atualizar(string nome, string nomeLoja, string telefone, string endereco)
+    {
+        Nome = nome;
+        NomeLoja = nomeLoja;
+        Telefone = telefone;
+        Endereco = endereco;
+    }
+
+    public void AlterarSenha(string novaSenhaHash) => SenhaHash = novaSenhaHash;
+
     public bool ValidarSenha(string senha) => BCrypt.Net.BCrypt.Verify(senha, SenhaHash);
 }

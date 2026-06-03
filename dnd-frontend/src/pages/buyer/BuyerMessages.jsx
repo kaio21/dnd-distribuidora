@@ -14,6 +14,7 @@ export default function BuyerMessages() {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [connection, setConnection] = useState(null)
+  const [whatsAppNumber, setWhatsAppNumber] = useState('')
   const bottomRef = useRef()
 
   const loadMessages = () => {
@@ -23,6 +24,11 @@ export default function BuyerMessages() {
   }
 
   useEffect(() => {
+    api.get('/settings').then(r => {
+      const num = r.data.whatsAppNumber?.replace(/\D/g, '')
+      if (num) setWhatsAppNumber(num)
+    }).catch(() => {})
+
     loadMessages()
 
     const token = localStorage.getItem('token')
@@ -68,9 +74,9 @@ export default function BuyerMessages() {
   }
 
   const openWhatsApp = () => {
-    const phone = '5511999999999'
+    if (!whatsAppNumber) { toast.error('Número de WhatsApp não configurado.'); return }
     const msg = encodeURIComponent(`Olá! Sou ${user.name} e gostaria de falar sobre um pedido na D&D Distribuidora.`)
-    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
+    window.open(`https://wa.me/${whatsAppNumber}?text=${msg}`, '_blank')
   }
 
   return (

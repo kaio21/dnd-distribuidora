@@ -2,6 +2,22 @@ using System.Text.Json.Serialization;
 
 namespace DnD.API.Aplicacao.DTOs;
 
+public record AtualizarCompradorDto(
+    [property: JsonPropertyName("name")]      string Nome,
+    [property: JsonPropertyName("storeName")] string NomeLoja,
+    [property: JsonPropertyName("phone")]     string Telefone,
+    [property: JsonPropertyName("address")]   string Endereco
+);
+
+public record AtualizarVendedorDto(
+    [property: JsonPropertyName("name")] string Nome
+);
+
+public record AlterarSenhaDto(
+    [property: JsonPropertyName("currentPassword")] string SenhaAtual,
+    [property: JsonPropertyName("newPassword")]      string NovaSenha
+);
+
 public record CriarVendedorDto(
     [property: JsonPropertyName("name")]     string Nome,
     [property: JsonPropertyName("cpf")]      string? CPF,

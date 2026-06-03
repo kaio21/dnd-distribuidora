@@ -5,8 +5,25 @@ namespace DnD.API.Infraestrutura.Dados;
 
 public static class DadosIniciais
 {
+    private const string NumeroWhatsApp = "5521990849179";
+
     public static async Task PopularAsync(AppDbContext db)
     {
+        // Garante o número de WhatsApp mesmo em banco já existente
+        var config = await db.ConfiguracoesLoja.FirstOrDefaultAsync();
+        if (config is null)
+        {
+            var novaConfig = ConfiguracaoLoja.Criar();
+            novaConfig.Atualizar("08:00", "18:00", true, NumeroWhatsApp);
+            db.ConfiguracoesLoja.Add(novaConfig);
+            await db.SaveChangesAsync();
+        }
+        else if (string.IsNullOrEmpty(config.NumeroWhatsApp))
+        {
+            config.Atualizar(config.HoraAbertura, config.HoraFechamento, config.Aberta, NumeroWhatsApp);
+            await db.SaveChangesAsync();
+        }
+
         if (await db.Vendedores.AnyAsync()) return;
 
         var vendedor = Vendedor.Criar(

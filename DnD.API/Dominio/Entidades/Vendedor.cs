@@ -41,6 +41,10 @@ public class Vendedor
             CriadoEm = criadoEm ?? DateTime.UtcNow
         };
 
+    public void Atualizar(string nome) => Nome = nome;
+
+    public void AlterarSenha(string novaSenhaHash) => SenhaHash = novaSenhaHash;
+
     public bool ValidarSenha(string senha) => BCrypt.Net.BCrypt.Verify(senha, SenhaHash);
 
     public void Aprovar() => Aprovado = true;
