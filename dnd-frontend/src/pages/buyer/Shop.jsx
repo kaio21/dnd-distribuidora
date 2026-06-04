@@ -69,6 +69,14 @@ export default function Shop() {
     }))
   }
 
+  const setQty = (id, value) => {
+    const num = parseInt(value, 10)
+    if (isNaN(num) || num < 1) return
+    const product = products.find(p => p.id === id)
+    if (num > product.stock) { toast.error(`Estoque máximo: ${product.stock}`); return }
+    setCart(prev => prev.map(i => i.id === id ? { ...i, qty: num } : i))
+  }
+
   const cartCount = cart.reduce((a, i) => a + i.qty, 0)
   const cartTotal = cart.reduce((a, i) => a + i.salePrice * i.qty, 0)
 
@@ -144,11 +152,16 @@ export default function Shop() {
                 </button>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button onClick={() => changeQty(item.id, -1)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition">
                     <Minus size={12} />
                   </button>
-                  <span className="text-sm font-bold w-6 text-center">{item.qty}</span>
+                  <input
+                    type="number" min="1" max={products.find(p => p.id === item.id)?.stock}
+                    value={item.qty}
+                    onChange={e => setQty(item.id, e.target.value)}
+                    className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg py-1 focus:outline-none focus:border-blue-400"
+                  />
                   <button onClick={() => changeQty(item.id, 1)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition">
                     <Plus size={12} />
                   </button>
@@ -207,15 +220,15 @@ export default function Shop() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone size={14} className="text-blue-500 shrink-0" />
-                    <p className="text-sm text-gray-700">{maskPhone(buyerProfile.phone)}</p>
+                    <p className="text-sm text-gray-700">{buyerProfile.phone ? maskPhone(buyerProfile.phone) : '—'}</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <MapPin size={14} className="text-blue-500 mt-0.5 shrink-0" />
                     <p className="text-sm text-gray-700">{buyerProfile.address}</p>
                   </div>
                   <div className="text-xs text-gray-500 pt-1 border-t border-blue-100 mt-2 flex gap-4">
-                    <span>CPF: {maskCPF(buyerProfile.cpf)}</span>
-                    <span>CNPJ: {maskCNPJ(buyerProfile.cnpj)}</span>
+                    {buyerProfile.cpf  && <span>CPF: {maskCPF(buyerProfile.cpf)}</span>}
+                    {buyerProfile.cnpj && <span>CNPJ: {maskCNPJ(buyerProfile.cnpj)}</span>}
                   </div>
                 </div>
               )}

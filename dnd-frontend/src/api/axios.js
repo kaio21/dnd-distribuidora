@@ -16,7 +16,9 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || ''
+    // Não redireciona em endpoints de autenticação — o login testa credenciais intencionalmente
+    if (err.response?.status === 401 && !url.includes('/auth/')) {
       localStorage.clear()
       window.location.href = '/'
     }
