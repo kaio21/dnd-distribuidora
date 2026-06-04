@@ -6,7 +6,7 @@ namespace DnD.API.Aplicacao.DTOs;
 // JsonPropertyName não afeta [FromForm] — apenas JSON body.
 public record CriarProdutoDto(
     string Name,
-    string Description,
+    string? Description,
     string Category,
     decimal CostPrice,
     decimal SalePrice,
@@ -15,7 +15,7 @@ public record CriarProdutoDto(
 
 public record AtualizarProdutoDto(
     string Name,
-    string Description,
+    string? Description,
     string Category,
     decimal CostPrice,
     decimal SalePrice,

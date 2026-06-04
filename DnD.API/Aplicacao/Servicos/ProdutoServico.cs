@@ -29,7 +29,7 @@ public class ProdutoServico
 
     public async Task<RespostaProdutoDto> CriarAsync(CriarProdutoDto dto, IFormFile? imagem)
     {
-        var produto = Produto.Criar(dto.Name, dto.Description, dto.Category,
+        var produto = Produto.Criar(dto.Name, dto.Description ?? string.Empty, dto.Category,
             dto.CostPrice, dto.SalePrice, dto.Stock);
 
         if (imagem != null)
@@ -46,7 +46,7 @@ public class ProdutoServico
         var produto = await _produtoRepo.ObterPorIdAsync(id);
         if (produto is null) return null;
 
-        produto.Atualizar(dto.Name, dto.Description, dto.Category,
+        produto.Atualizar(dto.Name, dto.Description ?? string.Empty, dto.Category,
             dto.CostPrice, dto.SalePrice, dto.Stock, dto.IsActive);
 
         if (imagem != null)
