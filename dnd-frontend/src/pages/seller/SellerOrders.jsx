@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
-import { ShoppingBag, TrendingUp, MessageSquare, CheckCircle, Filter, UserCheck } from 'lucide-react'
+import { ShoppingBag, TrendingUp, MessageSquare, CheckCircle, Filter, UserCheck, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { gerarNotaFiscal } from '../../utils/notaFiscal'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
@@ -172,6 +173,10 @@ export default function SellerOrders() {
                   <button onClick={() => openWhatsApp(order)}
                     className="flex items-center gap-1.5 text-sm py-1.5 px-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition">
                     <MessageSquare size={14} /> WhatsApp
+                  </button>
+                  <button onClick={() => gerarNotaFiscal(order, { mostrarLucro: true })}
+                    className="flex items-center gap-1.5 text-sm py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition">
+                    <FileText size={14} /> Nota Fiscal
                   </button>
 
                   <div className="flex items-center gap-1.5 ml-auto">

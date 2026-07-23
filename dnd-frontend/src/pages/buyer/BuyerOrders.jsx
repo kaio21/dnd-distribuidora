@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
-import { Package, CheckCircle, Clock, Truck, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Package, CheckCircle, Clock, Truck, XCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { gerarNotaFiscal } from '../../utils/notaFiscal'
 import * as signalR from '@microsoft/signalr'
 import { HUB_URL } from '../../api/config'
 import toast from 'react-hot-toast'
@@ -97,6 +98,10 @@ export default function BuyerOrders() {
                     className="btn-secondary flex items-center gap-2 text-sm py-2">
                     {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     {isExpanded ? 'Fechar' : 'Ver detalhes'}
+                  </button>
+                  <button onClick={() => gerarNotaFiscal(order)}
+                    className="flex items-center gap-2 text-sm py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition">
+                    <FileText size={16} /> Comprovante
                   </button>
                 </div>
 
