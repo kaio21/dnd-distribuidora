@@ -12,6 +12,7 @@ export default function Products() {
   const [products, setProducts] = useState([])
   const [categoryList, setCategoryList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -25,11 +26,16 @@ export default function Products() {
   const fileRef = useRef()
 
   const load = () => {
+    setLoading(true)
+    setLoadError(false)
     Promise.all([api.get('/products'), api.get('/categories')]).then(([prodRes, catRes]) => {
       setProducts(prodRes.data)
       setCategoryList(catRes.data)
       const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
       setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
+    }).catch(() => {
+      setLoadError(true)
+      toast.error('Não foi possível carregar produtos e categorias. Tente novamente.')
     }).finally(() => setLoading(false))
   }
 
@@ -151,7 +157,14 @@ export default function Products() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {loadError ? (
+        <div className="card text-center py-16">
+          <Package size={48} className="text-red-300 mx-auto mb-4" />
+          <p className="text-gray-500 font-medium">Não foi possível carregar os produtos</p>
+          <p className="text-gray-400 text-sm mt-1">O servidor pode estar demorando para responder. Tente novamente.</p>
+          <button onClick={load} className="btn-primary mt-4">Tentar novamente</button>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="card text-center py-16">
           <Package size={48} className="text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 font-medium">Nenhum produto encontrado</p>
