@@ -22,22 +22,45 @@ public class MensagemRepositorio : IMensagemRepositorio
             .OrderBy(m => m.CriadoEm)
             .ToListAsync();
 
-    public async Task<IEnumerable<Mensagem>> ObterTodasAsync() =>
-        await _db.Mensagens
-            .Include(m => m.Comprador)
-            .ToListAsync();
-
-    public async Task<IEnumerable<Comprador>> ObterCompradoresComMensagensAsync()
+    public async Task<IEnumerable<ResumoConversaProjecao>> ObterResumoConversasAsync()
     {
-        var mensagens = await _db.Mensagens.ToListAsync();
-
-        var compradorIds = mensagens
-            .Select(m => m.TipoRemetente == "Buyer" ? m.RemetenteId : m.DestinatarioId)
-            .Distinct();
-
-        return await _db.Compradores
-            .Where(c => compradorIds.Contains(c.Id))
+        // Agregação (MAX/COUNT) roda no banco, não na aplicação — evita carregar a
+        // tabela inteira de mensagens em memória a cada abertura da lista de conversas.
+        var resumos = await _db.Mensagens
+            .Select(m => new
+            {
+                CompradorId = m.TipoRemetente == "Buyer" ? m.RemetenteId : m.DestinatarioId,
+                m.CriadoEm,
+                m.Lida,
+                m.TipoRemetente
+            })
+            .GroupBy(x => x.CompradorId)
+            .Select(g => new
+            {
+                CompradorId = g.Key,
+                UltimaMensagemEm = g.Max(x => x.CriadoEm),
+                NaoLidas = g.Sum(x => x.TipoRemetente == "Buyer" && !x.Lida ? 1 : 0)
+            })
             .ToListAsync();
+
+        if (resumos.Count == 0)
+            return [];
+
+        // Busca só as mensagens que efetivamente são "a última" de cada conversa
+        // (poucas linhas), em vez da tabela toda.
+        var datas = resumos.Select(r => r.UltimaMensagemEm).ToList();
+        var candidatas = await _db.Mensagens
+            .Where(m => datas.Contains(m.CriadoEm))
+            .ToListAsync();
+
+        return resumos.Select(r =>
+        {
+            var ultima = candidatas.FirstOrDefault(m =>
+                m.CriadoEm == r.UltimaMensagemEm &&
+                (m.TipoRemetente == "Buyer" ? m.RemetenteId : m.DestinatarioId) == r.CompradorId);
+
+            return new ResumoConversaProjecao(r.CompradorId, ultima?.Conteudo ?? "", r.UltimaMensagemEm, r.NaoLidas);
+        });
     }
 
     public async Task<Dictionary<int, Vendedor>> ObterVendedoresPorIdsAsync(IEnumerable<int> ids) =>

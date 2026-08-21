@@ -3,20 +3,27 @@ import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import {
   ShoppingCart, Package, Plus, Minus, Trash2, Image, AlertCircle,
-  X, ChevronDown, ChevronRight, Clock, MessageCircle, CheckCircle,
+  X, Search, Clock, MessageCircle, CheckCircle,
   User, MapPin, Phone
 } from 'lucide-react'
 import { maskCPF, maskCNPJ, maskPhone } from '../../utils/masks'
+import Pagination from '../../components/Pagination'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+const PAGE_SIZE = 24
 
 export default function Shop() {
   const [products, setProducts] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [categoryList, setCategoryList] = useState([])
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
-  const [openCategories, setOpenCategories] = useState({})
   const [storeSettings, setStoreSettings] = useState(null)
   const [ordering, setOrdering] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -25,16 +32,29 @@ export default function Shop() {
   const [successOrder, setSuccessOrder] = useState(null)
 
   useEffect(() => {
-    Promise.all([
-      api.get('/products?activeOnly=true'),
-      api.get('/settings')
-    ]).then(([prodRes, settingsRes]) => {
-      setProducts(prodRes.data)
-      setStoreSettings(settingsRes.data)
-      const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
-      setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
-    }).finally(() => setLoading(false))
+    api.get('/settings').then(r => setStoreSettings(r.data)).catch(() => {})
+    api.get('/categories').then(r => setCategoryList(r.data)).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(1) }, 350)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  useEffect(() => { setPage(1) }, [categoryFilter])
+
+  useEffect(() => {
+    setLoading(true)
+    const params = { activeOnly: true, page, pageSize: PAGE_SIZE }
+    if (search) params.search = search
+    if (categoryFilter) params.category = categoryFilter
+
+    api.get('/products', { params }).then(({ data }) => {
+      setProducts(data.items)
+      setTotalCount(data.totalCount)
+      setTotalPages(data.totalPages || 1)
+    }).finally(() => setLoading(false))
+  }, [page, search, categoryFilter])
 
   const isStoreOpen = () => {
     if (!storeSettings) return true
@@ -58,13 +78,16 @@ export default function Shop() {
 
   const removeFromCart = (id) => setCart(prev => prev.filter(i => i.id !== id))
 
+  // O estoque máximo usado aqui vem do snapshot salvo no item do carrinho no
+  // momento em que foi adicionado — os produtos carregados na tela mudam de
+  // página, então não dá para depender da lista `products` atual para validar.
+  // A validação definitiva de qualquer forma acontece no servidor ao fechar o pedido.
   const changeQty = (id, delta) => {
     setCart(prev => prev.map(i => {
       if (i.id !== id) return i
       const newQty = i.qty + delta
       if (newQty < 1) return i
-      const product = products.find(p => p.id === id)
-      if (newQty > product.stock) { toast.error(`Estoque máximo: ${product.stock}`); return i }
+      if (newQty > i.stock) { toast.error(`Estoque máximo: ${i.stock}`); return i }
       return { ...i, qty: newQty }
     }))
   }
@@ -72,9 +95,11 @@ export default function Shop() {
   const setQty = (id, value) => {
     const num = parseInt(value, 10)
     if (isNaN(num) || num < 1) return
-    const product = products.find(p => p.id === id)
-    if (num > product.stock) { toast.error(`Estoque máximo: ${product.stock}`); return }
-    setCart(prev => prev.map(i => i.id === id ? { ...i, qty: num } : i))
+    setCart(prev => prev.map(i => {
+      if (i.id !== id) return i
+      if (num > i.stock) { toast.error(`Estoque máximo: ${i.stock}`); return i }
+      return { ...i, qty: num }
+    }))
   }
 
   const cartCount = cart.reduce((a, i) => a + i.qty, 0)
@@ -126,14 +151,6 @@ export default function Shop() {
     }
   }
 
-  const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
-
-  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-  const categories = [...new Set(filtered.map(p => p.category || 'Geral'))].sort()
-  const byCategory = Object.fromEntries(
-    categories.map(cat => [cat, filtered.filter(p => (p.category || 'Geral') === cat)])
-  )
-
   const CartItems = () => (
     <>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -157,7 +174,7 @@ export default function Shop() {
                     <Minus size={12} />
                   </button>
                   <input
-                    type="number" min="1" max={products.find(p => p.id === item.id)?.stock}
+                    type="number" min="1" max={item.stock}
                     value={item.qty}
                     onChange={e => setQty(item.id, e.target.value)}
                     className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg py-1 focus:outline-none focus:border-blue-400"
@@ -186,7 +203,7 @@ export default function Shop() {
     </>
   )
 
-  if (loading) return (
+  if (loading && products.length === 0) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
@@ -298,7 +315,7 @@ export default function Shop() {
       <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Loja</h1>
-          <p className="text-gray-500 text-sm mt-1">{products.length} produto(s) disponível(is)</p>
+          <p className="text-gray-500 text-sm mt-1">{totalCount} produto(s) disponível(is)</p>
         </div>
 
         {storeSettings && (
@@ -312,75 +329,65 @@ export default function Shop() {
           </div>
         )}
 
-        <div className="mb-5">
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar produto..." className="input max-w-md" />
+        <div className="mb-5 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
+              placeholder="Buscar produto..." className="input pl-9" />
+          </div>
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="input sm:w-56">
+            <option value="">Todas as categorias</option>
+            {categoryList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
         </div>
 
-        {filtered.length === 0 ? (
+        {!loading && products.length === 0 ? (
           <div className="text-center py-20">
             <Package size={48} className="text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">Nenhum produto disponível no momento</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {categories.map(cat => (
-              <div key={cat} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleCategory(cat)}
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition">
-                  <div className="flex items-center gap-3">
-                    {openCategories[cat] ? <ChevronDown size={18} className="text-blue-600" /> : <ChevronRight size={18} className="text-gray-400" />}
-                    <span className="font-bold text-gray-800">{cat}</span>
-                    <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
-                      {byCategory[cat].length}
-                    </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {products.map(p => (
+              <div key={p.id}
+                className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
+                <div className="aspect-video bg-gray-100 overflow-hidden">
+                  {p.imageUrl
+                    ? <img src={p.imageUrl} alt={p.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                    : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
+                </div>
+                <div className="p-3 flex flex-col flex-1">
+                  <span className="inline-block text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full mb-2 self-start">
+                    {p.category || 'Geral'}
+                  </span>
+                  <h3 className="font-bold text-gray-900 mb-1 text-sm">{p.name}</h3>
+                  {p.description && <p className="text-gray-500 text-xs mb-2 line-clamp-2">{p.description}</p>}
+
+                  <div className="flex items-center justify-between mb-3 mt-auto">
+                    <p className="text-xl font-black text-blue-700">{fmt(p.salePrice)}</p>
+                    {p.stock === 0 ? (
+                      <span className="flex items-center gap-1 text-red-500 text-xs font-medium">
+                        <AlertCircle size={14} /> Sem estoque
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">{p.stock} disp.</span>
+                    )}
                   </div>
-                </button>
 
-                {openCategories[cat] && (
-                  <div className="border-t border-gray-100">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
-                      {byCategory[cat].map(p => (
-                        <div key={p.id}
-                          className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-                          <div className="aspect-video bg-gray-100 overflow-hidden">
-                            {p.imageUrl
-                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
-                              : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
-                          </div>
-                          <div className="p-3 flex flex-col flex-1">
-                            <h3 className="font-bold text-gray-900 mb-1 text-sm">{p.name}</h3>
-                            {p.description && <p className="text-gray-500 text-xs mb-2 line-clamp-2">{p.description}</p>}
-
-                            <div className="flex items-center justify-between mb-3 mt-auto">
-                              <p className="text-xl font-black text-blue-700">{fmt(p.salePrice)}</p>
-                              {p.stock === 0 ? (
-                                <span className="flex items-center gap-1 text-red-500 text-xs font-medium">
-                                  <AlertCircle size={14} /> Sem estoque
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 text-xs">{p.stock} disp.</span>
-                              )}
-                            </div>
-
-                            <button
-                              onClick={() => addToCart(p)}
-                              disabled={p.stock === 0 || !storeOpen}
-                              className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-2">
-                              <ShoppingCart size={15} />
-                              {!storeOpen ? 'Loja fechada' : p.stock === 0 ? 'Sem estoque' : 'Adicionar'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  <button
+                    onClick={() => addToCart(p)}
+                    disabled={p.stock === 0 || !storeOpen}
+                    className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-2">
+                    <ShoppingCart size={15} />
+                    {!storeOpen ? 'Loja fechada' : p.stock === 0 ? 'Sem estoque' : 'Adicionar'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
+
+        <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} itemLabel="produto(s)" />
       </div>
 
       {/* Carrinho — desktop sidebar */}

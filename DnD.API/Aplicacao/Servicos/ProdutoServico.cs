@@ -21,6 +21,21 @@ public class ProdutoServico
         return produtos.Select(MapearParaDto);
     }
 
+    public async Task<PagedResultDto<RespostaProdutoDto>> ListarPaginadoAsync(
+        bool? apenasAtivos, string? busca, string? categoria, int pagina, int tamanhoPagina)
+    {
+        pagina = pagina < 1 ? 1 : pagina;
+        tamanhoPagina = tamanhoPagina is < 1 or > 100 ? 24 : tamanhoPagina;
+
+        var (produtos, totalCount) = await _produtoRepo.ListarPaginadoAsync(
+            apenasAtivos, busca, categoria, pagina, tamanhoPagina);
+
+        return new PagedResultDto<RespostaProdutoDto>(
+            produtos.Select(MapearParaDto),
+            pagina, tamanhoPagina, totalCount,
+            (int)Math.Ceiling(totalCount / (double)tamanhoPagina));
+    }
+
     public async Task<RespostaProdutoDto?> ObterPorIdAsync(int id)
     {
         var produto = await _produtoRepo.ObterPorIdAsync(id);

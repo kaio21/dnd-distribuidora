@@ -15,8 +15,13 @@ public class ProdutosController : ControllerBase
     public ProdutosController(ProdutoServico servico) => _servico = servico;
 
     [HttpGet]
-    public async Task<IActionResult> Listar([FromQuery] bool? activeOnly) =>
-        Ok(await _servico.ListarAsync(activeOnly));
+    public async Task<IActionResult> Listar(
+        [FromQuery] bool? activeOnly,
+        [FromQuery] string? search,
+        [FromQuery] string? category,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 24) =>
+        Ok(await _servico.ListarPaginadoAsync(activeOnly, search, category, page, pageSize));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> ObterPorId(int id)

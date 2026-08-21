@@ -16,22 +16,24 @@ public class DashboardServico
 
     public async Task<RespostaDashboardDto> ObterDashboardAsync()
     {
-        var pedidos = (await _pedidoRepo.ObterTodosComItensAsync()).ToList();
-        var todosOsProdutos = (await _produtoRepo.ListarAsync()).ToList();
+        // Os totais gerais (receita/lucro/contagens) vêm de agregações no banco —
+        // não precisam carregar pedido por pedido para somar.
+        var (totalValor, totalLucro, totalPedidos) = await _pedidoRepo.ObterResumoGeralAsync();
+        var (totalProdutos, produtosAtivos) = await _produtoRepo.ContarAsync();
 
-        var resumo = new ResumoDashboardDto(
-            pedidos.Sum(p => p.ValorTotal),
-            pedidos.Sum(p => p.LucroTotal),
-            pedidos.Count,
-            todosOsProdutos.Count,
-            todosOsProdutos.Count(p => p.Ativo));
+        var resumo = new ResumoDashboardDto(totalValor, totalLucro, totalPedidos, totalProdutos, produtosAtivos);
 
         var agora = DateTime.UtcNow;
+
+        // Os gráficos e o top de produtos só olham para os últimos ~70 dias
+        // (7 dias diários + 8 semanas, com folga) — não o histórico inteiro,
+        // que só cresce e não muda o que aparece nesses cartões.
+        var pedidosRecentes = (await _pedidoRepo.ObterRecentesComItensAsync(agora.AddDays(-70))).ToList();
 
         var dadosDiarios = Enumerable.Range(0, 7).Select(i =>
         {
             var data = agora.AddDays(-i).Date;
-            var pedidosDia = pedidos.Where(p => p.CriadoEm.Date == data).ToList();
+            var pedidosDia = pedidosRecentes.Where(p => p.CriadoEm.Date == data).ToList();
             return new PeriodoVendasDto(
                 data.ToString("dd/MM"),
                 pedidosDia.Sum(p => p.ValorTotal),
@@ -43,7 +45,7 @@ public class DashboardServico
         {
             var inicioSemana = agora.AddDays(-(i * 7) - (int)agora.DayOfWeek).Date;
             var fimSemana = inicioSemana.AddDays(7);
-            var pedidosSemana = pedidos
+            var pedidosSemana = pedidosRecentes
                 .Where(p => p.CriadoEm.Date >= inicioSemana && p.CriadoEm.Date < fimSemana)
                 .ToList();
             return new PeriodoVendasDto(
@@ -53,7 +55,7 @@ public class DashboardServico
                 pedidosSemana.Count);
         }).Reverse().ToList();
 
-        var topProdutos = pedidos
+        var topProdutos = pedidosRecentes
             .SelectMany(p => p.Itens)
             .GroupBy(i => i.ProdutoId)
             .Select(g => new TopProdutoDto(

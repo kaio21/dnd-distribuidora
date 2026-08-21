@@ -149,7 +149,7 @@ export default function Home() {
                         <div key={p.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
                           <div className="aspect-video bg-gray-100 overflow-hidden">
                             {p.imageUrl
-                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                              ? <img src={p.imageUrl} alt={p.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
                               : <div className="flex items-center justify-center h-full text-gray-300"><Image size={40} /></div>}
                           </div>
                           <div className="p-3 flex flex-col flex-1">

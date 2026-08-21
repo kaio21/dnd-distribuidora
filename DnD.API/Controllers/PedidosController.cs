@@ -28,13 +28,15 @@ public class PedidosController : ControllerBase
     public async Task<IActionResult> Listar(
         [FromQuery] string? status,
         [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to)
+        [FromQuery] DateTime? to,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         var role = User.FindFirstValue(ClaimTypes.Role);
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var perfilVendedor = User.FindFirstValue("SellerRole");
 
-        return Ok(await _servico.ListarAsync(role, userId, perfilVendedor, status, from, to));
+        return Ok(await _servico.ListarAsync(role, userId, perfilVendedor, status, from, to, page, pageSize));
     }
 
     [HttpGet("{id}")]

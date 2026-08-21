@@ -30,6 +30,43 @@ public class PedidoRepositorio : IPedidoRepositorio
         DateTime? de = null,
         DateTime? ate = null)
     {
+        var query = ConstruirQueryFiltrada(compradorId, role, vendedorId, perfilVendedor, status, de, ate);
+        return await query.OrderByDescending(p => p.CriadoEm).ToListAsync();
+    }
+
+    public async Task<(IEnumerable<Pedido> Itens, int TotalCount)> ListarPaginadoAsync(
+        int? compradorId, string? role, int? vendedorId, string? perfilVendedor,
+        StatusPedido? status, DateTime? de, DateTime? ate, int pagina, int tamanhoPagina)
+    {
+        var query = ConstruirQueryFiltrada(compradorId, role, vendedorId, perfilVendedor, status, de, ate);
+
+        var totalCount = await query.CountAsync();
+
+        var itens = await query
+            .OrderByDescending(p => p.CriadoEm)
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .ToListAsync();
+
+        return (itens, totalCount);
+    }
+
+    public async Task<(decimal TotalValor, decimal TotalLucro)> ObterTotaisAsync(
+        int? compradorId, string? role, int? vendedorId, string? perfilVendedor,
+        StatusPedido? status, DateTime? de, DateTime? ate)
+    {
+        var query = ConstruirQueryFiltrada(compradorId, role, vendedorId, perfilVendedor, status, de, ate);
+
+        // SUM roda no banco, sem carregar os pedidos filtrados inteiros em memória.
+        var totalValor = await query.SumAsync(p => p.ValorTotal);
+        var totalLucro = await query.SumAsync(p => p.LucroTotal);
+        return (totalValor, totalLucro);
+    }
+
+    private IQueryable<Pedido> ConstruirQueryFiltrada(
+        int? compradorId, string? role, int? vendedorId, string? perfilVendedor,
+        StatusPedido? status, DateTime? de, DateTime? ate)
+    {
         var query = _db.Pedidos
             .Include(p => p.Comprador)
             .Include(p => p.AtendidoPorVendedor)
@@ -50,7 +87,7 @@ public class PedidoRepositorio : IPedidoRepositorio
         if (ate.HasValue)
             query = query.Where(p => p.CriadoEm <= ate.Value.AddDays(1));
 
-        return await query.OrderByDescending(p => p.CriadoEm).ToListAsync();
+        return query;
     }
 
     public async Task<IEnumerable<Pedido>> ObterTodosComItensAsync() =>
@@ -58,6 +95,23 @@ public class PedidoRepositorio : IPedidoRepositorio
             .Include(p => p.Itens).ThenInclude(i => i.Produto)
             .Where(p => p.Status != StatusPedido.Cancelado)
             .ToListAsync();
+
+    public async Task<IEnumerable<Pedido>> ObterRecentesComItensAsync(DateTime desde) =>
+        await _db.Pedidos
+            .Include(p => p.Itens).ThenInclude(i => i.Produto)
+            .Where(p => p.Status != StatusPedido.Cancelado && p.CriadoEm >= desde)
+            .ToListAsync();
+
+    public async Task<(decimal TotalValor, decimal TotalLucro, int TotalCount)> ObterResumoGeralAsync()
+    {
+        // SUM/COUNT rodam no banco — evita carregar o histórico de pedidos
+        // inteiro (com itens e produtos) só para somar totais.
+        var query = _db.Pedidos.Where(p => p.Status != StatusPedido.Cancelado);
+        var totalValor = await query.SumAsync(p => p.ValorTotal);
+        var totalLucro = await query.SumAsync(p => p.LucroTotal);
+        var totalCount = await query.CountAsync();
+        return (totalValor, totalLucro, totalCount);
+    }
 
     public Task SalvarAlteracoesAsync() =>
         _db.SaveChangesAsync();

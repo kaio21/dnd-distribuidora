@@ -4,6 +4,7 @@ using DnD.API.Dominio.Entidades;
 using DnD.API.Dominio.Repositorios;
 using DnD.API.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace DnD.API.Aplicacao.Servicos;
 
@@ -56,11 +57,22 @@ public class PedidoServico
                 ?? throw new DomainException($"Produto {itemDto.ProdutoId} não encontrado.");
 
             pedido.AdicionarItem(produto, itemDto.Quantidade);
-            await _produtoRepo.SalvarAlteracoesAsync();
         }
 
         await _pedidoRepo.AdicionarAsync(pedido);
-        await _pedidoRepo.SalvarAlteracoesAsync();
+
+        try
+        {
+            // Um único SaveChanges grava pedido + baixa de estoque de forma atômica:
+            // se algum item falhar, nada é persistido, e a baixa de estoque é
+            // protegida por concorrência otimista (xmin) contra pedidos simultâneos.
+            await _pedidoRepo.SalvarAlteracoesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflitoDeDadosException(
+                "Um ou mais produtos foram alterados por outra operação ao mesmo tempo. Tente novamente.");
+        }
 
         await _hub.Clients.Group("sellers")
             .SendAsync("NewOrder", new { orderId = pedido.Id, buyerName = comprador.Nome });
@@ -69,24 +81,34 @@ public class PedidoServico
         return MapearParaDto(pedidoCompleto!);
     }
 
-    public async Task<IEnumerable<RespostaPedidoDto>> ListarAsync(
+    public async Task<PagedPedidosDto> ListarAsync(
         string? role, int userId, string? perfilVendedor,
-        string? status, DateTime? de, DateTime? ate)
+        string? status, DateTime? de, DateTime? ate,
+        int pagina, int tamanhoPagina)
     {
         StatusPedido? statusEnum = null;
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<StatusPedido>(status, out var s))
             statusEnum = s;
 
-        var pedidos = await _pedidoRepo.ListarAsync(
-            compradorId: role == "Buyer" ? userId : null,
-            role: role,
-            vendedorId: role == "Seller" ? userId : null,
-            perfilVendedor: perfilVendedor,
-            status: statusEnum,
-            de: de,
-            ate: ate);
+        pagina = pagina < 1 ? 1 : pagina;
+        tamanhoPagina = tamanhoPagina is < 1 or > 100 ? 20 : tamanhoPagina;
 
-        return pedidos.Select(MapearParaDto);
+        var compradorId = role == "Buyer" ? userId : (int?)null;
+        var vendedorId = role == "Seller" ? userId : (int?)null;
+
+        var (pedidos, totalCount) = await _pedidoRepo.ListarPaginadoAsync(
+            compradorId, role, vendedorId, perfilVendedor, statusEnum, de, ate, pagina, tamanhoPagina);
+
+        // Receita/lucro precisam refletir TODOS os pedidos que batem com o filtro,
+        // não só a página atual — por isso é uma consulta agregada separada.
+        var (totalValor, totalLucro) = await _pedidoRepo.ObterTotaisAsync(
+            compradorId, role, vendedorId, perfilVendedor, statusEnum, de, ate);
+
+        return new PagedPedidosDto(
+            pedidos.Select(MapearParaDto),
+            pagina, tamanhoPagina, totalCount,
+            (int)Math.Ceiling(totalCount / (double)tamanhoPagina),
+            totalValor, totalLucro);
     }
 
     public async Task<RespostaPedidoDto?> ObterPorIdAsync(int id)

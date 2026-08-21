@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '../../api/axios'
 import { Package, CheckCircle, Clock, Truck, XCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react'
 import { format } from 'date-fns'
@@ -7,6 +7,9 @@ import { gerarNotaFiscal } from '../../utils/notaFiscal'
 import * as signalR from '@microsoft/signalr'
 import { HUB_URL } from '../../api/config'
 import toast from 'react-hot-toast'
+import Pagination from '../../components/Pagination'
+
+const PAGE_SIZE = 20
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
@@ -20,16 +23,27 @@ const statusConfig = {
 
 export default function BuyerOrders() {
   const [orders, setOrders] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
   const { userId } = JSON.parse(localStorage.getItem('user') || '{}')
 
   const load = () => {
-    api.get('/orders').then(r => setOrders(r.data)).finally(() => setLoading(false))
+    api.get('/orders', { params: { page, pageSize: PAGE_SIZE } }).then(({ data }) => {
+      setOrders(data.items)
+      setTotalCount(data.totalCount)
+      setTotalPages(data.totalPages || 1)
+    }).finally(() => setLoading(false))
   }
 
+  useEffect(() => { load() }, [page])
+
+  const loadRef = useRef(load)
+  loadRef.current = load
+
   useEffect(() => {
-    load()
     const token = localStorage.getItem('token')
     const conn = new signalR.HubConnectionBuilder()
       .withUrl(`${HUB_URL}/hubs/chat?access_token=${token}`)
@@ -39,7 +53,7 @@ export default function BuyerOrders() {
     conn.on('OrderStatusUpdated', ({ orderId, status }) => {
       const sc = statusConfig[status]
       toast(sc?.label || `Pedido #${orderId}: ${status}`, { icon: '📦' })
-      load()
+      loadRef.current()
     })
 
     conn.start().then(() => {
@@ -49,13 +63,13 @@ export default function BuyerOrders() {
     return () => conn.stop()
   }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+  if (loading && orders.length === 0) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
 
   return (
     <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Meus Pedidos</h1>
-        <p className="text-gray-500 text-sm mt-1">{orders.length} pedido(s)</p>
+        <p className="text-gray-500 text-sm mt-1">{totalCount} pedido(s)</p>
       </div>
 
       {orders.length === 0 ? (
@@ -138,6 +152,8 @@ export default function BuyerOrders() {
           })}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} itemLabel="pedido(s)" />
     </div>
   )
 }

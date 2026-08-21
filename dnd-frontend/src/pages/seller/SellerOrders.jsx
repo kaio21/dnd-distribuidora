@@ -5,7 +5,9 @@ import { ShoppingBag, TrendingUp, MessageSquare, CheckCircle, Filter, UserCheck,
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { gerarNotaFiscal } from '../../utils/notaFiscal'
+import Pagination from '../../components/Pagination'
 
+const PAGE_SIZE = 20
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
 const statusConfig = {
@@ -24,6 +26,11 @@ const nextStatus = {
 
 export default function SellerOrders() {
   const [orders, setOrders] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalRevenue, setTotalRevenue] = useState(0)
+  const [totalProfit, setTotalProfit] = useState(0)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -35,15 +42,23 @@ export default function SellerOrders() {
     api.get('/sellers').then(r => setSellers(r.data)).catch(() => {})
   }, [])
 
+  useEffect(() => { setPage(1) }, [filterStatus, dateFrom, dateTo])
+
   const load = () => {
-    const params = new URLSearchParams()
-    if (filterStatus) params.append('status', filterStatus)
-    if (dateFrom) params.append('from', dateFrom)
-    if (dateTo) params.append('to', dateTo)
-    api.get(`/orders?${params}`).then(r => setOrders(r.data)).finally(() => setLoading(false))
+    const params = { page, pageSize: PAGE_SIZE }
+    if (filterStatus) params.status = filterStatus
+    if (dateFrom) params.from = dateFrom
+    if (dateTo) params.to = dateTo
+    api.get('/orders', { params }).then(({ data }) => {
+      setOrders(data.items)
+      setTotalCount(data.totalCount)
+      setTotalPages(data.totalPages || 1)
+      setTotalRevenue(data.totalRevenue)
+      setTotalProfit(data.totalProfit)
+    }).finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [filterStatus, dateFrom, dateTo])
+  useEffect(() => { load() }, [filterStatus, dateFrom, dateTo, page])
 
   const advance = async (order) => {
     const next = nextStatus[order.status]
@@ -78,22 +93,19 @@ export default function SellerOrders() {
     window.open(`https://wa.me/55${phone}?text=${msg}`, '_blank')
   }
 
-  const totalRevenue = orders.reduce((a, o) => a + o.totalAmount, 0)
-  const totalProfit  = orders.reduce((a, o) => a + o.totalProfit, 0)
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+  if (loading && orders.length === 0) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
 
   return (
     <div className="p-4 md:p-8">
       <div className="mb-6 md:mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
-        <p className="text-gray-500 text-sm mt-1">{orders.length} pedido(s) encontrado(s)</p>
+        <p className="text-gray-500 text-sm mt-1">{totalCount} pedido(s) encontrado(s)</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="card">
           <p className="text-sm text-gray-500">Pedidos filtrados</p>
-          <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-500">Receita</p>
@@ -221,6 +233,8 @@ export default function SellerOrders() {
           })}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} itemLabel="pedido(s)" />
     </div>
   )
 }

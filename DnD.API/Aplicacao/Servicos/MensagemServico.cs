@@ -71,22 +71,18 @@ public class MensagemServico
 
     public async Task<IEnumerable<ConversaDto>> ListarConversasAsync()
     {
-        var mensagens = (await _mensagemRepo.ObterTodasAsync()).ToList();
-        var compradores = await _mensagemRepo.ObterCompradoresComMensagensAsync();
+        var resumos = (await _mensagemRepo.ObterResumoConversasAsync()).ToList();
+        var compradores = await _mensagemRepo.ObterCompradoresPorIdsAsync(resumos.Select(r => r.CompradorId));
 
-        return compradores.Select(comprador =>
-        {
-            var mensagensComprador = mensagens.Where(m =>
-                (m.TipoRemetente == "Buyer" && m.RemetenteId == comprador.Id) ||
-                (m.TipoDestinatario == "Buyer" && m.DestinatarioId == comprador.Id))
-                .OrderByDescending(m => m.CriadoEm).ToList();
-
-            var ultima = mensagensComprador.FirstOrDefault();
-            var naoLidas = mensagensComprador.Count(m => m.TipoRemetente == "Buyer" && !m.Lida);
-
-            return new ConversaDto(
-                comprador.Id, comprador.Nome, comprador.NomeLoja, naoLidas,
-                ultima?.Conteudo ?? "", ultima?.CriadoEm ?? DateTime.MinValue);
-        }).OrderByDescending(c => c.UltimaMensagemEm);
+        return resumos
+            .Where(r => compradores.ContainsKey(r.CompradorId))
+            .Select(r =>
+            {
+                var comprador = compradores[r.CompradorId];
+                return new ConversaDto(
+                    comprador.Id, comprador.Nome, comprador.NomeLoja, r.NaoLidas,
+                    r.UltimoConteudo, r.UltimaMensagemEm);
+            })
+            .OrderByDescending(c => c.UltimaMensagemEm);
     }
 }

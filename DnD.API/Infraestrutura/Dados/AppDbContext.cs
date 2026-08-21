@@ -42,6 +42,9 @@ public class AppDbContext : DbContext
         {
             e.Property(p => p.PrecoCusto).HasPrecision(10, 2);
             e.Property(p => p.PrecoVenda).HasPrecision(10, 2);
+            // detecta escritas concorrentes no estoque sem precisar de migração
+            e.Property<uint>("xmin").IsRowVersion();
+            e.HasIndex(p => p.NomeCategoria); // usado no filtro de categoria da listagem paginada
         });
 
         modelBuilder.Entity<Pedido>(e =>
@@ -59,6 +62,7 @@ public class AppDbContext : DbContext
              .WithMany()
              .HasForeignKey(p => p.AtendidoPorVendedorId)
              .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(p => p.CriadoEm); // ordenação/paginação e filtros de data da listagem de pedidos
         });
 
         modelBuilder.Entity<ItemPedido>(e =>
@@ -84,6 +88,7 @@ public class AppDbContext : DbContext
              .HasForeignKey(m => m.CompradorId)
              .IsRequired(false)
              .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(m => m.CriadoEm); // agregação da lista de conversas
         });
     }
 }

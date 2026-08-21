@@ -6,11 +6,34 @@ using DnD.API.Infraestrutura.Dados;
 using DnD.API.Infraestrutura.Repositorios;
 using DnD.API.Infraestrutura.Servicos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using System.IO.Compression;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Limites do Kestrel ──────────────────────────────────────────────────────────
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxConcurrentConnections = 200;
+    options.Limits.MaxConcurrentUpgradedConnections = 200; // WebSockets (SignalR)
+    options.Limits.MaxRequestBodySize = 20 * 1024 * 1024; // 20MB (upload de imagens)
+});
+
+// ── Logging persistente (Serilog) ──────────────────────────────────────────────
+builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(
+        Path.Combine(AppContext.BaseDirectory, "logs", "dnd-api-.log"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 14,
+        shared: true));
 
 // ── Banco de dados ────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -18,7 +41,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsql =>
         {
-            npgsql.CommandTimeout(30);
+            npgsql.CommandTimeout(15);
             npgsql.EnableRetryOnFailure(
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(5),
@@ -81,6 +104,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// ── Compressão de resposta (Brotli/Gzip) ────────────────────────────────────────
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
 builder.Services.AddHealthChecks();
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
@@ -100,6 +133,28 @@ builder.Services.AddCors(options =>
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
+// Captura qualquer exceção não tratada (fora do domínio) para que o processo
+// nunca derrube a requisição sem log — e o cliente recebe um erro genérico, não
+// uma página branca/stack trace.
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var feature = context.Features.Get<IExceptionHandlerFeature>();
+        if (feature?.Error is { } ex)
+        {
+            Log.Error(ex, "Erro não tratado em {Path}", context.Request.Path);
+        }
+
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { message = "Ocorreu um erro interno. Tente novamente em instantes." });
+    });
+});
+
+app.UseSerilogRequestLogging();
+
+app.UseResponseCompression();
 app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication();
@@ -108,4 +163,17 @@ app.MapHealthChecks("/health");
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 
-app.Run();
+try
+{
+    Log.Information("DnD.API iniciando...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "DnD.API encerrado inesperadamente durante a inicialização");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}

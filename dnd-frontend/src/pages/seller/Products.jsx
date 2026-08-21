@@ -1,19 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
-import { Plus, Edit, Trash2, Pause, Play, Package, Search, Image, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, Pause, Play, Package, Search, Image } from 'lucide-react'
 import ConfirmModal from '../../components/ConfirmModal'
+import Pagination from '../../components/Pagination'
+import { resizeImage } from '../../utils/imageResize'
 
 const fmt = (v) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+const PAGE_SIZE = 24
 
 const emptyForm = { name: '', description: '', category: '', costPrice: '', salePrice: '', stock: '', isActive: true }
 
 export default function Products() {
   const [products, setProducts] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [categoryList, setCategoryList] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -21,25 +29,39 @@ export default function Products() {
   const [imagePreview, setImagePreview] = useState(null)
   const [removeImage, setRemoveImage] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [openCategories, setOpenCategories] = useState({})
   const [confirmDelete, setConfirmDelete] = useState(null) // produto a excluir
   const fileRef = useRef()
+
+  // debounce da busca — evita disparar uma requisição a cada tecla digitada
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(1) }, 350)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  useEffect(() => { setPage(1) }, [categoryFilter])
+
+  useEffect(() => {
+    api.get('/categories').then(r => setCategoryList(r.data)).catch(() => {})
+  }, [])
 
   const load = () => {
     setLoading(true)
     setLoadError(false)
-    Promise.all([api.get('/products'), api.get('/categories')]).then(([prodRes, catRes]) => {
-      setProducts(prodRes.data)
-      setCategoryList(catRes.data)
-      const cats = [...new Set(prodRes.data.map(p => p.category || 'Geral'))]
-      setOpenCategories(Object.fromEntries(cats.map(c => [c, true])))
+    const params = { page, pageSize: PAGE_SIZE }
+    if (search) params.search = search
+    if (categoryFilter) params.category = categoryFilter
+
+    api.get('/products', { params }).then(({ data }) => {
+      setProducts(data.items)
+      setTotalCount(data.totalCount)
+      setTotalPages(data.totalPages || 1)
     }).catch(() => {
       setLoadError(true)
-      toast.error('Não foi possível carregar produtos e categorias. Tente novamente.')
+      toast.error('Não foi possível carregar os produtos. Tente novamente.')
     }).finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [page, search, categoryFilter])
 
   const openCreate = () => {
     setEditing(null)
@@ -59,11 +81,12 @@ export default function Products() {
     setShowModal(true)
   }
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    const otimizada = await resizeImage(file)
+    setImageFile(otimizada)
+    setImagePreview(URL.createObjectURL(otimizada))
     setRemoveImage(false)
   }
 
@@ -121,17 +144,7 @@ export default function Products() {
     }
   }
 
-  const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
-
-  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-
-  // agrupar por categoria
-  const categories = [...new Set(filtered.map(p => p.category || 'Geral'))].sort()
-  const byCategory = Object.fromEntries(
-    categories.map(cat => [cat, filtered.filter(p => (p.category || 'Geral') === cat)])
-  )
-
-  if (loading) return (
+  if (loading && products.length === 0) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
@@ -142,19 +155,23 @@ export default function Products() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
-          <p className="text-gray-500 text-sm mt-1">{products.length} produto(s) cadastrado(s)</p>
+          <p className="text-gray-500 text-sm mt-1">{totalCount} produto(s) cadastrado(s)</p>
         </div>
         <button onClick={openCreate} className="btn-primary flex items-center gap-2">
           <Plus size={18} /> Novo Produto
         </button>
       </div>
 
-      <div className="card mb-6">
-        <div className="relative">
+      <div className="card mb-6 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
             placeholder="Buscar produto..." className="input pl-9" />
         </div>
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="input sm:w-56">
+          <option value="">Todas as categorias</option>
+          {categoryList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+        </select>
       </div>
 
       {loadError ? (
@@ -164,80 +181,63 @@ export default function Products() {
           <p className="text-gray-400 text-sm mt-1">O servidor pode estar demorando para responder. Tente novamente.</p>
           <button onClick={load} className="btn-primary mt-4">Tentar novamente</button>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="card text-center py-16">
           <Package size={48} className="text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 font-medium">Nenhum produto encontrado</p>
-          <button onClick={openCreate} className="btn-primary mt-4">Cadastrar primeiro produto</button>
+          {!search && !categoryFilter && (
+            <button onClick={openCreate} className="btn-primary mt-4">Cadastrar primeiro produto</button>
+          )}
         </div>
       ) : (
-        <div className="space-y-4">
-          {categories.map(cat => (
-            <div key={cat} className="card p-0 overflow-hidden">
-              {/* cabeçalho da categoria */}
-              <button
-                onClick={() => toggleCategory(cat)}
-                className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition">
-                <div className="flex items-center gap-3">
-                  {openCategories[cat] ? <ChevronDown size={18} className="text-blue-600" /> : <ChevronRight size={18} className="text-gray-400" />}
-                  <span className="font-bold text-gray-800">{cat}</span>
-                  <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
-                    {byCategory[cat].length}
-                  </span>
-                </div>
-              </button>
-
-              {/* produtos da categoria */}
-              {openCategories[cat] && (
-                <div className="border-t border-gray-100">
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
-                    {byCategory[cat].map(p => (
-                      <div key={p.id} className={`bg-white border border-gray-100 rounded-xl p-4 relative ${!p.isActive ? 'opacity-60' : ''}`}>
-                        {!p.isActive && (
-                          <div className="absolute top-2 right-2 bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded">PAUSADO</div>
-                        )}
-                        <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                          {p.imageUrl
-                            ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                            : <div className="flex items-center justify-center h-full text-gray-300"><Image size={32} /></div>}
-                        </div>
-                        <h3 className="font-bold text-gray-900 mb-1 text-sm">{p.name}</h3>
-                        <p className="text-gray-500 text-xs mb-3 line-clamp-2">{p.description}</p>
-                        <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                          <div className="bg-red-50 rounded-lg p-1.5">
-                            <p className="text-xs text-red-500 font-medium">Custo</p>
-                            <p className="text-xs font-bold text-red-700">{fmt(p.costPrice)}</p>
-                          </div>
-                          <div className="bg-blue-50 rounded-lg p-1.5">
-                            <p className="text-xs text-blue-500 font-medium">Venda</p>
-                            <p className="text-xs font-bold text-blue-700">{fmt(p.salePrice)}</p>
-                          </div>
-                          <div className="bg-green-50 rounded-lg p-1.5">
-                            <p className="text-xs text-green-500 font-medium">Lucro</p>
-                            <p className="text-xs font-bold text-green-700">{fmt(p.profit)}</p>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 mb-3">Estoque: <span className={`font-bold ${p.stock === 0 ? 'text-red-600' : 'text-gray-800'}`}>{p.stock} un.</span></p>
-                        <div className="flex gap-2">
-                          <button onClick={() => openEdit(p)} className="btn-secondary flex-1 flex items-center justify-center gap-1 text-xs py-1.5">
-                            <Edit size={12} /> Editar
-                          </button>
-                          <button onClick={() => handleToggle(p)} className={`flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-lg font-semibold transition ${p.isActive ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
-                            {p.isActive ? <><Pause size={12} /> Pausar</> : <><Play size={12} /> Ativar</>}
-                          </button>
-                          <button onClick={() => setConfirmDelete(p)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {products.map(p => (
+            <div key={p.id} className={`card p-4 relative ${!p.isActive ? 'opacity-60' : ''}`}>
+              {!p.isActive && (
+                <div className="absolute top-2 right-2 bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded">PAUSADO</div>
               )}
+              <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                {p.imageUrl
+                  ? <img src={p.imageUrl} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+                  : <div className="flex items-center justify-center h-full text-gray-300"><Image size={32} /></div>}
+              </div>
+              <span className="inline-block text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full mb-2">
+                {p.category || 'Geral'}
+              </span>
+              <h3 className="font-bold text-gray-900 mb-1 text-sm">{p.name}</h3>
+              <p className="text-gray-500 text-xs mb-3 line-clamp-2">{p.description}</p>
+              <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                <div className="bg-red-50 rounded-lg p-1.5">
+                  <p className="text-xs text-red-500 font-medium">Custo</p>
+                  <p className="text-xs font-bold text-red-700">{fmt(p.costPrice)}</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-1.5">
+                  <p className="text-xs text-blue-500 font-medium">Venda</p>
+                  <p className="text-xs font-bold text-blue-700">{fmt(p.salePrice)}</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-1.5">
+                  <p className="text-xs text-green-500 font-medium">Lucro</p>
+                  <p className="text-xs font-bold text-green-700">{fmt(p.profit)}</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mb-3">Estoque: <span className={`font-bold ${p.stock === 0 ? 'text-red-600' : 'text-gray-800'}`}>{p.stock} un.</span></p>
+              <div className="flex gap-2">
+                <button onClick={() => openEdit(p)} className="btn-secondary flex-1 flex items-center justify-center gap-1 text-xs py-1.5">
+                  <Edit size={12} /> Editar
+                </button>
+                <button onClick={() => handleToggle(p)} className={`flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-lg font-semibold transition ${p.isActive ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                  {p.isActive ? <><Pause size={12} /> Pausar</> : <><Play size={12} /> Ativar</>}
+                </button>
+                <button onClick={() => setConfirmDelete(p)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition">
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} itemLabel="produto(s)" />
 
       <ConfirmModal
         open={!!confirmDelete}

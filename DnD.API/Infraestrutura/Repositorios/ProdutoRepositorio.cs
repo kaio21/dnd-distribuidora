@@ -21,6 +21,38 @@ public class ProdutoRepositorio : IProdutoRepositorio
         return await query.OrderByDescending(p => p.CriadoEm).ToListAsync();
     }
 
+    public async Task<(int Total, int Ativos)> ContarAsync()
+    {
+        var total = await _db.Produtos.CountAsync();
+        var ativos = await _db.Produtos.CountAsync(p => p.Ativo);
+        return (total, ativos);
+    }
+
+    public async Task<(IEnumerable<Produto> Itens, int TotalCount)> ListarPaginadoAsync(
+        bool? apenasAtivos, string? busca, string? categoria, int pagina, int tamanhoPagina)
+    {
+        var query = _db.Produtos.AsQueryable();
+
+        if (apenasAtivos == true)
+            query = query.Where(p => p.Ativo);
+
+        if (!string.IsNullOrWhiteSpace(busca))
+            query = query.Where(p => EF.Functions.ILike(p.Nome, $"%{busca}%"));
+
+        if (!string.IsNullOrWhiteSpace(categoria))
+            query = query.Where(p => p.NomeCategoria == categoria);
+
+        var totalCount = await query.CountAsync();
+
+        var itens = await query
+            .OrderBy(p => p.NomeCategoria).ThenBy(p => p.Nome)
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .ToListAsync();
+
+        return (itens, totalCount);
+    }
+
     public Task<Produto?> ObterPorIdAsync(int id) =>
         _db.Produtos.FindAsync(id).AsTask();
 
